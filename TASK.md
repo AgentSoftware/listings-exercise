@@ -43,7 +43,7 @@ You don't need to build these. If you have time, pick up whichever interests you
 
 ## What to hand back
 
-- A **branch or PR** with your work.
+- **A fork of this repo** with your work on it. Fork it, commit on a branch, and open a pull request **against your own fork** rather than against this repository — that keeps your solution to yourself, and still gives us a diff to read. Send us the link.
 - A short **`NOTES.md`** (half a page is plenty): the key decisions and trade-offs you made, what you deliberately left out, what you'd do with more time, and — honestly — where your solution wouldn't hold up yet (for example, as the data grows). We read this closely; a lot of the signal is here.
 
 ## What happens next
