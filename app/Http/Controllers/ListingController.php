@@ -19,7 +19,11 @@ class ListingController extends Controller
      */
     public function index(ListingIndexRequest $request): Response
     {
-        $query = Listing::query()->live();
+        // Reuse the same filtering logic as the main listings search (see the
+        // `filter()` scope on Listing), so saved searches match the same criteria.
+        $query = Listing::query()->live()->filter(
+            $request->only('property_type', 'max_price', 'min_bedrooms', 'region')
+        );
 
         if ($request->filled('property_type')) {
             $query->where('property_type', $request->string('property_type'));

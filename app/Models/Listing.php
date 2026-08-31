@@ -82,4 +82,29 @@ class Listing extends Model
     {
         $query->where('status', ListingStatus::Live);
     }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    public function scopeFilter(Builder $query, array $filters): Builder
+    {
+        if (! empty($filters['property_type'] ?? null)) {
+            $query->where('property_type', $filters['property_type']);
+        }
+
+        if (! empty($filters['max_price'] ?? null)) {
+            $query->where('price', '<=', $filters['max_price']);
+        }
+
+        if (! empty($filters['min_bedrooms'] ?? null)) {
+            $query->where('bedrooms', '>=', $filters['min_bedrooms']);
+        }
+
+        if (! empty($filters['region'] ?? null)) {
+            $region = $filters['region'];
+            $query->whereHas('branch', fn ($branchQuery) => $branchQuery->where('region', $region));
+        }
+
+        return $query;
+    }
 }

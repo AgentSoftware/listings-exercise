@@ -5,6 +5,7 @@ import AppLayout from '../../components/AppLayout.vue';
 import ListingCard from '../../components/ListingCard.vue';
 import ListingFilters from '../../components/ListingFilters.vue';
 import Pagination from '../../components/Pagination.vue';
+import { useListingSearch } from '../../composables/useListingSearch';
 
 const props = defineProps({
     listings: { type: Object, required: true },
@@ -13,37 +14,17 @@ const props = defineProps({
     filters: { type: Object, required: true },
 });
 
-const processing = ref(false);
+const { form, processing, activeFilters, search, reset } = useListingSearch('/', props.filters);
 
-// Seeded from the server so the filter form survives a refresh, a shared link
-// or the back button — the query string is the single source of truth.
-const form = ref({
-    property_type: props.filters.property_type ?? '',
-    region: props.filters.region ?? '',
-    min_bedrooms: props.filters.min_bedrooms ?? '',
-    max_price: props.filters.max_price ?? '',
-});
+const saving = ref(false);
 
-function search() {
-    // Blank fields are dropped rather than sent empty, so the URL stays clean.
-    const query = Object.fromEntries(
-        Object.entries(form.value).filter(([, value]) => value !== '' && value !== null),
-    );
-
-    router.get('/', query, {
-        preserveState: true,
+function saveSearch() {
+    router.post('/saved-searches', activeFilters(), {
         preserveScroll: true,
-        replace: true,
-        // Inertia cancels the in-flight visit when a new one starts, so rapid
-        // searches can't land out of order.
-        onStart: () => (processing.value = true),
-        onFinish: () => (processing.value = false),
+        preserveState: true,
+        onStart: () => (saving.value = true),
+        onFinish: () => (saving.value = false),
     });
-}
-
-function reset() {
-    form.value = { property_type: '', region: '', min_bedrooms: '', max_price: '' };
-    search();
 }
 </script>
 
@@ -60,10 +41,21 @@ function reset() {
             @reset="reset"
         />
 
-        <p class="mb-4 text-sm text-slate-500" aria-live="polite">
-            <span v-if="processing">Loading…</span>
-            <span v-else>{{ listings.meta.total }} listing(s) found</span>
-        </p>
+        <div class="mb-4 flex items-center justify-between">
+            <p class="text-sm text-slate-500" aria-live="polite">
+                <span v-if="processing">Loading…</span>
+                <span v-else>{{ listings.meta.total }} listing(s) found</span>
+            </p>
+
+            <button
+                type="button"
+                :disabled="saving"
+                class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                @click="saveSearch"
+            >
+                {{ saving ? 'Saving…' : 'Save this search' }}
+            </button>
+        </div>
 
         <div
             v-if="listings.data.length"
