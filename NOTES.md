@@ -113,9 +113,16 @@ That only holds within one run. Selecting the un-notified alerts and marking
 them are separate statements, so two overlapping runs would both pick up the
 same alerts and both send — and the README encourages running the command by
 hand, which is exactly when it could collide with the schedule. The command
-takes a lock for the length of a run. It lives in the command rather than on
-the schedule entry, because `withoutOverlapping()` guards scheduled invocations
-against each other and would do nothing about a manual run.
+takes a lock, which lives in the command rather than on the schedule entry
+because `withoutOverlapping()` guards scheduled invocations against each other
+and would do nothing about a manual run.
+
+Laravel's locks can't be extended once taken, so the lock has a fixed hour-long
+expiry rather than lasting exactly as long as the run. A run that outlives it
+would let the next one in and duplicate the digests it hasn't marked yet — so
+the hour is sized past the worst case, at the cost of a hard-killed process
+blocking the next run for that long. A run approaching an hour means the
+catch-up window is too big to clear in one pass, not that the hour is too short.
 
 **Ownership is structural.** These records are only reached via
 `$user->savedSearches()` / `$user->alerts()`, and `destroy` resolves through the
