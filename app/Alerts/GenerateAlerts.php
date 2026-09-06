@@ -60,6 +60,12 @@ class GenerateAlerts
      * This is ListingCriteria::applyTo() turned inside out and applied to every
      * new listing at once. A null criterion means "any", so each one is an
      * IS NULL OR comparison.
+     *
+     * Note this restates those comparisons rather than reusing the value
+     * object: matching every new listing against every saved search in one
+     * statement is not something an object built for one query at a time can
+     * express. So a new criterion has to be added in both places, and only
+     * Tests\Support\CriteriaOracle will tell you if they drift.
      */
     private function unalertedMatches(string $now): QueryBuilder
     {

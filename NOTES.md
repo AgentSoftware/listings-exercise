@@ -66,18 +66,31 @@ The upside of deciding it this way is that the policy is one clause of the
 matching join (`s.created_at <= l.listed_at`) rather than a special case
 anywhere.
 
-**Criteria live in one value object.** Three places must agree on what "matches"
-means: the browse page queries with `applyTo()`, the saved-search form validates
-with `rules()`, and the nightly run joins on the same comparisons.
-`App\Search\ListingCriteria` is that agreement.
+**One set of criteria, but two implementations of the match.** This is the part
+of the design I'd want a second opinion on.
 
-Two of those are SQL, and the run's is `applyTo()` turned inside out — given a
-listing, which searches want it. Inverting a query by hand is the kind of thing
-that looks right and isn't, so both are tested against `Tests\Support\CriteriaOracle`:
-the same rule stated naively in PHP, slow and obvious where the real ones are
-fast and clever. That is a test fixture rather than production code, so it lives
-in `tests/` — nothing in the application calls it. It earns its place: mutating
-a single `<=` to `<` in either SQL path fails the grid.
+`App\Search\ListingCriteria` is the shared definition: the four fields, their
+validation (`rules()`, used by both the browse filters and the saved-search form,
+which also derives its "at least one criterion" check from the same field list),
+and `applyTo()`, which is how the browse page queries.
+
+The nightly run does **not** use it. Its join is hand-written SQL that
+reimplements the same comparisons inverted — given a listing, which searches want
+it — because the whole point of that rewrite was to match every new listing
+against every search in one statement, which an object built for one query at a
+time can't express. So the rule is written twice in production, and the second
+copy references the first only in a comment.
+
+Nothing structural keeps them honest. What does is
+`Tests\Support\CriteriaOracle`: the same rule stated naively in PHP, slow and
+obvious where the two real ones are fast and clever, with both asserted against
+it across every combination of set and "any". Changing one comparison — `<=` to
+`<` in `applyTo()`, or `>=` to `>` in the join — fails the grid in both cases.
+
+That's a test holding an invariant that a type could hold instead, and it's the
+first thing I'd fix given more time: have the join built from `ListingCriteria`
+rather than restating it, so adding a fifth criterion is one change rather than
+two and a hope.
 
 **Criteria are columns, not JSON** — the run matches in SQL, which needs real
 columns, and it keeps the values typed. Cost: a migration per new criterion.
