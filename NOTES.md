@@ -141,16 +141,35 @@ outage pulls thousands of models into memory to send five lines. For 5,000
 searches against 100 listings: **3,992 queries and 61s → 198 queries and 1.9s**.
 Memory is now flat in alert volume: 93.2MB at 95,805 alerts, 96.6MB at 574,830.
 
+**Caveat on the timings.** Every figure above was measured before I added an
+index on `saved_searches.user_id` — which exists for the saved-searches page,
+not for this. Adding it changed the run's query plan: SQLite used to drive from
+the new listings and scan the searches, and now drives from the searches and
+seeks the listings. The query *counts* are unaffected, since an index cannot
+change how many statements run, but the times were taken against a plan that no
+longer executes, and repeated index seeks are not obviously cheaper than the
+sequential scan they replaced. I have not re-measured, so treat the millisecond
+figures as describing the shape of the change — three orders of magnitude, loop
+to single statement — rather than as current numbers.
+
 ## Where it wouldn't hold up
 
 - **The join is a nested loop.** Every criterion is `IS NULL OR …`, which no
-  index can serve, so cost is O(new listings × saved searches) — fine for a
-  hundred listings a day against a hundred thousand searches, not fine an order
-  of magnitude past that. The fix is to store saturating sentinels instead of
-  NULL (`''` for any region, the column max for any price, `0` for any bedrooms)
-  so all four become plain comparisons and a composite index can drive the join.
-  I didn't do it because it trades the clarity of "null means any" for
+  index can serve, so cost is O(new listings × saved searches) whichever side
+  drives — the predicates sit on the join condition, not on either table, so
+  swapping the drive order doesn't remove them. Fine for a hundred listings a
+  day against a hundred thousand searches; not fine an order of magnitude past
+  that. The fix is to store saturating sentinels instead of NULL (`''` for any
+  region, the column max for any price, `0` for any bedrooms) so all four become
+  plain comparisons and a composite index can drive the join; `EXPLAIN QUERY
+  PLAN` confirms that turns the `SCAN` of `saved_searches` into a `SEARCH`. I
+  didn't do it because it trades the clarity of "null means any" for
   index-ability, and the measured numbers don't demand it yet.
+- **Nothing pins the query plan.** SQLite chooses the join order, so an index
+  added for one page can silently re-plan the alert run — which is exactly what
+  happened, see the caveat above. There is no test or benchmark in the suite
+  that would catch that, and adding one is the thing I'd want before tuning any
+  further.
 - **One digest per user is still one email per user.** Nothing here changes
   that; it's the floor.
 - **The numbers above are SQLite.** On Postgres the `notified_at` round trip
