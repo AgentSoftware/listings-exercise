@@ -123,6 +123,16 @@ Memory is now flat in alert volume: 93.2MB at 95,805 alerts, 96.6MB at 574,830.
   above bites.
 - **`(user_id, listing_id)` unique forever** means a property withdrawn and
   re-listed a year later never alerts again. Probably right; arguably wrong.
+- **Deleting a search orphans the alerts it produced.** They are kept — we did
+  tell the user about those properties — but they render as "From a search
+  you've since deleted" even when another of the user's searches still matches
+  the same listing, because deduplication is on `(user_id, listing_id)` and the
+  run never revisits a pair that already has an alert. Defensible, since an
+  alert records *that* we told them rather than *why*, but it reads oddly. The
+  fix is to re-point the alert at another matching search on delete rather than
+  nulling it; I left the behaviour alone and pinned it with a test
+  (`test_a_deleted_search_is_not_replaced_by_another_that_matches`) so it's a
+  decision rather than a surprise.
 
 ## Left out deliberately
 
