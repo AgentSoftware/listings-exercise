@@ -109,6 +109,14 @@ chunk size — `USERS_PER_CHUNK`, currently 100 — so that number is the trade
 between how many digests a failure can lose and how many update statements the
 run costs.
 
+That only holds within one run. Selecting the un-notified alerts and marking
+them are separate statements, so two overlapping runs would both pick up the
+same alerts and both send — and the README encourages running the command by
+hand, which is exactly when it could collide with the schedule. The command
+takes a lock for the length of a run. It lives in the command rather than on
+the schedule entry, because `withoutOverlapping()` guards scheduled invocations
+against each other and would do nothing about a manual run.
+
 **Ownership is structural.** These records are only reached via
 `$user->savedSearches()` / `$user->alerts()`, and `destroy` resolves through the
 relationship rather than route-model binding, so another user's record is a 404
