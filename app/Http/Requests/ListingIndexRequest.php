@@ -2,9 +2,8 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\PropertyType;
+use App\Search\ListingCriteria;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Enum;
 
 class ListingIndexRequest extends FormRequest
 {
@@ -19,12 +18,18 @@ class ListingIndexRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'property_type' => ['nullable', new Enum(PropertyType::class)],
-            'max_price' => ['nullable', 'integer', 'min:0'],
-            'min_bedrooms' => ['nullable', 'integer', 'min:0', 'max:20'],
-            'region' => ['nullable', 'string', 'max:100'],
+            ...ListingCriteria::rules(),
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'page' => ['nullable', 'integer', 'min:1'],
         ];
+    }
+
+    /**
+     * The filters this request is asking for, as the value object the rest of
+     * the application matches on.
+     */
+    public function criteria(): ListingCriteria
+    {
+        return ListingCriteria::fromArray($this->validated());
     }
 }
