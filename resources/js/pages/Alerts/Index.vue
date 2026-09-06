@@ -12,7 +12,7 @@ defineProps({
 
 const page = usePage();
 
-const unreadCount = computed(() => page.props.alerts.unread_count);
+const unreadCount = computed(() => page.props.unreadAlerts ?? 0);
 
 function markAllRead() {
     router.post('/alerts/read', {}, { preserveScroll: true });

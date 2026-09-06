@@ -47,9 +47,11 @@ class HandleInertiaRequests extends Middleware
 
             // Backs the nav badge, so it is needed on every page. One indexed
             // count per request — see NOTES.md if that ever stops being cheap.
-            'alerts' => [
-                'unread_count' => fn () => $request->user()?->alerts()->unread()->count() ?? 0,
-            ],
+            //
+            // Deliberately a top-level scalar rather than an `alerts` object: a
+            // page prop of the same name silently overrides a shared one, and
+            // the alerts page itself passes `alerts`.
+            'unreadAlerts' => fn () => $request->user()?->alerts()->unread()->count() ?? 0,
         ];
     }
 }

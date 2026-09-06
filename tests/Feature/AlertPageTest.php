@@ -93,6 +93,31 @@ class AlertPageTest extends TestCase
             );
     }
 
+    /**
+     * Every page, the alerts page included — a page prop silently overrides a
+     * shared one of the same name, which is how the badge went missing here.
+     */
+    /**
+     * A property can sell after we alerted on it. The alert stays — we did tell
+     * the buyer about it — so the page has to cope with a listing its own
+     * detail route would now 404 on.
+     */
+    public function test_an_alert_survives_the_listing_leaving_the_market(): void
+    {
+        $buyer = $this->buyer();
+        $listing = Listing::factory()->sold()->create();
+        Alert::factory()->for($buyer)->create(['listing_id' => $listing->id]);
+
+        $this->get("/listings/{$listing->id}")->assertNotFound();
+
+        $this->get('/alerts')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('alerts.data', 1)
+                ->where('alerts.data.0.listing.status', 'sold')
+            );
+    }
+
     public function test_the_unread_count_is_shared_with_every_page(): void
     {
         $buyer = $this->buyer();
@@ -100,11 +125,13 @@ class AlertPageTest extends TestCase
         Alert::factory()->for($buyer)->read()->create();
         Alert::factory(5)->for(User::factory())->create();
 
-        $this->get('/')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('alerts.unread_count', 2)
-            );
+        foreach (['/', '/saved-searches', '/alerts'] as $path) {
+            $this->get($path)
+                ->assertOk()
+                ->assertInertia(fn (AssertableInertia $page) => $page
+                    ->where('unreadAlerts', 2)
+                );
+        }
     }
 
     public function test_a_buyer_can_mark_all_their_alerts_read(): void

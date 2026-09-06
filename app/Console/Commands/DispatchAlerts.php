@@ -39,8 +39,10 @@ class DispatchAlerts extends Command
             $user->notify(new NewListingMatches($theirs));
         }
 
+        // "queued", not "sent": NewListingMatches is a queued notification, so
+        // on the default database queue these are delivered by a worker.
         $this->info(sprintf(
-            '%d alert(s) across %d listing(s); %d digest(s) sent.',
+            '%d alert(s) across %d listing(s); %d digest(s) queued.',
             $alerts->count(),
             $alerts->unique('listing_id')->count(),
             $byUser->count(),

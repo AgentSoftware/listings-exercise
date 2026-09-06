@@ -11,7 +11,7 @@ const page = usePage();
 
 const flash = computed(() => page.props.flash);
 
-const unreadAlerts = computed(() => page.props.alerts?.unread_count ?? 0);
+const unreadAlerts = computed(() => page.props.unreadAlerts ?? 0);
 
 // Matches on the path only, so a filtered browse URL still marks Browse active.
 function isCurrent(href) {
