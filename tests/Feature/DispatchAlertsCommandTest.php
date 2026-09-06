@@ -55,6 +55,39 @@ class DispatchAlertsCommandTest extends TestCase
         );
     }
 
+    /**
+     * The digest names a few properties and counts the rest, and the sender only
+     * ever loads that few — a buyer with a very broad search after an outage
+     * must not pull thousands of alerts into memory to be emailed about five.
+     */
+    public function test_a_large_digest_names_a_few_properties_and_counts_the_rest(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create();
+        $this->savedSearch($user, ['region' => 'Leeds']);
+        $this->liveListings(Branch::factory()->create(['region' => 'Leeds']), 8);
+
+        $this->artisan('alerts:dispatch')->assertSuccessful();
+
+        Notification::assertSentTo(
+            $user,
+            NewListingMatches::class,
+            function (NewListingMatches $digest, array $channels, User $notifiable) {
+                $lines = collect($digest->toMail($notifiable)->introLines);
+
+                return $digest->toMail($notifiable)->subject === '8 new properties match your saved searches'
+                    && $lines->filter(fn (string $line) => str_starts_with($line, '£'))->count() === NewListingMatches::PREVIEW
+                    && $lines->contains(fn (string $line) => str_contains($line, 'and 3 more'));
+            },
+        );
+
+        // Every match is still recorded and marked delivered, even though only
+        // five were named.
+        $this->assertDatabaseCount('alerts', 8);
+        $this->assertSame(0, $user->alerts()->whereNull('notified_at')->count());
+    }
+
     public function test_each_buyer_is_told_only_about_their_own_matches(): void
     {
         Notification::fake();

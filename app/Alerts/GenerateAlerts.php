@@ -2,16 +2,14 @@
 
 namespace App\Alerts;
 
-use App\Models\Alert;
-use App\Models\Listing;
-use App\Models\SavedSearch;
-use Illuminate\Database\Eloquent\Collection;
+use App\Enums\ListingStatus;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Finds recently published listings that match saved searches and records an
- * alert for each buyer who should hear about one.
+ * Records an alert for every buyer whose saved search matches a recently
+ * published listing.
  *
  * This runs on a schedule rather than the moment a listing goes live, because
  * delivery has to be batched — twenty listings published across a Tuesday must
@@ -22,6 +20,11 @@ use Illuminate\Support\Facades\DB;
  * The run is idempotent. It selects on the absence of an alert rather than on a
  * time window, so a failed or skipped run is picked up by the next one and it
  * is always safe to run by hand.
+ *
+ * It is deliberately one statement. Matching listings against saved searches is
+ * a join, and doing it as a join keeps the whole run to a single round trip and
+ * a single write, rather than a query per listing and two more per alert. See
+ * NOTES.md for the numbers and for where this still doesn't scale.
  */
 class GenerateAlerts
 {
@@ -29,65 +32,70 @@ class GenerateAlerts
      * How far back a run looks.
      *
      * This bounds the scan; it is not what makes the run correct. Correctness
-     * comes from the "no alert yet" condition below, which means the only cost
-     * of a missed run is that it must be caught within this window.
+     * comes from the "no alert yet" condition, which means the only cost of a
+     * missed run is that it must be caught within this window.
      */
     public const RECOVERY_WINDOW_DAYS = 7;
 
     /**
-     * @return Collection<int, Alert> the alerts created by this run
+     * @return int the number of alerts created
      */
-    public function __invoke(): Collection
+    public function __invoke(): int
     {
-        /** @var Collection<int, Alert> $created */
-        $created = new Collection;
+        $now = now()->toDateTimeString();
 
-        Listing::query()
-            ->live()
-            ->whereNotNull('listed_at')
-            ->where('listed_at', '>=', now()->subDays(self::RECOVERY_WINDOW_DAYS))
-            // matching() reads the branch region for every listing.
-            ->with('branch')
-            ->orderBy('id')
-            ->each(function (Listing $listing) use ($created): void {
-                foreach ($this->searchesAwaitingAlert($listing) as $search) {
-                    $alert = Alert::query()->firstOrCreate(
-                        ['user_id' => $search->user_id, 'listing_id' => $listing->id],
-                        ['saved_search_id' => $search->id],
-                    );
-
-                    if ($alert->wasRecentlyCreated) {
-                        $created->push($alert);
-                    }
-                }
-            });
-
-        return $created;
+        // insertOrIgnore rather than insert: the NOT EXISTS below and the unique
+        // index on (user_id, listing_id) can disagree if a second run overlaps
+        // this one — a manual run alongside the scheduled one, say. Ignoring the
+        // collision is exactly right, because the alert already exists.
+        return DB::table('alerts')->insertOrIgnoreUsing(
+            ['user_id', 'listing_id', 'saved_search_id', 'created_at', 'updated_at'],
+            $this->unalertedMatches($now),
+        );
     }
 
     /**
-     * The saved searches this listing should alert on — at most one per user.
+     * Every (buyer, listing) pair that should produce an alert and hasn't yet.
      *
-     * A listing matching two of someone's searches is still one alert; the
-     * oldest matching search is credited, so the attribution is stable between
-     * runs. The unique index on alerts enforces the same rule in the database,
-     * and firstOrCreate above makes a re-run a no-op rather than an error.
-     *
-     * @return Collection<int, SavedSearch>
+     * This is ListingCriteria::applyTo() turned inside out and applied to every
+     * new listing at once. A null criterion means "any", so each one is an
+     * IS NULL OR comparison.
      */
-    private function searchesAwaitingAlert(Listing $listing): Collection
+    private function unalertedMatches(string $now): QueryBuilder
     {
-        return SavedSearch::query()
-            ->matching($listing)
-            // Skip anyone already alerted about this listing, so a re-run inside
-            // the recovery window costs one query rather than a write per search.
+        return DB::table('listings as l')
+            ->join('branches as b', 'b.id', '=', 'l.branch_id')
+            ->join('saved_searches as s', function (JoinClause $join) {
+                $join
+                    ->where(fn (JoinClause $q) => $q
+                        ->whereNull('s.property_type')
+                        ->orWhereColumn('s.property_type', 'l.property_type'))
+                    ->where(fn (JoinClause $q) => $q
+                        ->whereNull('s.max_price')
+                        ->orWhereColumn('s.max_price', '>=', 'l.price'))
+                    ->where(fn (JoinClause $q) => $q
+                        ->whereNull('s.min_bedrooms')
+                        ->orWhereColumn('s.min_bedrooms', '<=', 'l.bedrooms'))
+                    ->where(fn (JoinClause $q) => $q
+                        ->whereNull('s.region')
+                        ->orWhereColumn('s.region', 'b.region'))
+                    // The backfill policy: you hear about listings that go live
+                    // after you save a search, not the whole market.
+                    ->whereColumn('s.created_at', '<=', 'l.listed_at');
+            })
+            ->where('l.status', ListingStatus::Live->value)
+            ->whereNotNull('l.listed_at')
+            ->where('l.listed_at', '>=', now()->subDays(self::RECOVERY_WINDOW_DAYS))
             ->whereNotExists(fn (QueryBuilder $alerts) => $alerts
                 ->select(DB::raw(1))
-                ->from('alerts')
-                ->whereColumn('alerts.user_id', 'saved_searches.user_id')
-                ->where('alerts.listing_id', $listing->id))
-            ->orderBy('id')
-            ->get()
-            ->unique('user_id');
+                ->from('alerts as a')
+                ->whereColumn('a.user_id', 's.user_id')
+                ->whereColumn('a.listing_id', 'l.id'))
+            // One alert per buyer per listing, however many of their searches
+            // matched — the anti-spam rule, applied in the database rather than
+            // by pulling every matching search into PHP to deduplicate. min(s.id)
+            // credits the oldest matching search, so attribution is stable.
+            ->groupBy('s.user_id', 'l.id')
+            ->selectRaw('s.user_id, l.id, min(s.id), ?, ?', [$now, $now]);
     }
 }

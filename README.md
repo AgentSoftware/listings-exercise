@@ -115,6 +115,8 @@ php artisan alerts:dispatch
 
 The command is idempotent: it selects listings that have no alert row yet rather than "listings added today", so a missed day is caught up by the next run and running it by hand is always safe. It is scheduled for 18:00 daily in `routes/console.php`.
 
+Matching is a single `INSERT ... SELECT` — one statement for the whole run, whatever the volume — and delivery chunks buyers, marking `alerts.notified_at` as it goes so a run that dies part way through resumes rather than re-sending. See [`NOTES.md`](NOTES.md) for the numbers.
+
 To see the whole thing end to end on a fresh database:
 
 ```bash

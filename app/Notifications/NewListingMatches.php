@@ -26,13 +26,21 @@ class NewListingMatches extends Notification implements ShouldQueue
     /**
      * How many properties the digest names before summarising the rest. The
      * full set is always on the alerts page.
+     *
+     * This also bounds what the sender has to load: a buyer with a very broad
+     * search can have thousands of pending alerts, and the digest only ever
+     * needs this many of them plus the total.
      */
-    private const PREVIEW = 5;
+    public const PREVIEW = 5;
 
     /**
-     * @param  Collection<int, Alert>  $alerts
+     * @param  Collection<int, Alert>  $alerts  at most PREVIEW of them, newest first
+     * @param  int  $total  how many the buyer actually has pending
      */
-    public function __construct(private readonly Collection $alerts) {}
+    public function __construct(
+        private readonly Collection $alerts,
+        private readonly int $total,
+    ) {}
 
     /**
      * @return list<string>
@@ -44,7 +52,7 @@ class NewListingMatches extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $count = $this->alerts->count();
+        $count = $this->total;
 
         $message = (new MailMessage)
             ->subject($count === 1
@@ -54,12 +62,12 @@ class NewListingMatches extends Notification implements ShouldQueue
                 ? 'A property has come onto the market matching a search you saved:'
                 : "{$count} properties have come onto the market matching searches you saved:");
 
-        foreach ($this->alerts->take(self::PREVIEW) as $alert) {
+        foreach ($this->alerts as $alert) {
             $message->line($this->describe($alert));
         }
 
-        if ($count > self::PREVIEW) {
-            $message->line('…and '.($count - self::PREVIEW).' more.');
+        if ($count > $this->alerts->count()) {
+            $message->line('…and '.($count - $this->alerts->count()).' more.');
         }
 
         return $message

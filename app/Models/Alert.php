@@ -21,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property int $listing_id
  * @property int|null $saved_search_id
  * @property Carbon|null $read_at
+ * @property Carbon|null $notified_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read User $user
@@ -37,6 +38,7 @@ class Alert extends Model
         'listing_id',
         'saved_search_id',
         'read_at',
+        'notified_at',
     ];
 
     /**
@@ -46,6 +48,7 @@ class Alert extends Model
     {
         return [
             'read_at' => 'datetime',
+            'notified_at' => 'datetime',
         ];
     }
 

@@ -55,10 +55,11 @@ clause of one query rather than a special case.
 **Criteria live in one value object.** Three places must agree on what "matches"
 means: the browse filters, the saved-search form, and the alert run.
 `App\Search\ListingCriteria` holds the rule once, as a query (`applyTo`), a
-predicate (`matches`) and validation rules; `SavedSearch::matching()` is the same
-rule inverted. Three implementations of one rule is the real risk this feature
-carries, so the tests assert directly that they select the same listings across a
-grid of boundary values rather than trusting the inversion by eye.
+predicate (`matches`) and validation rules. The alert run's join is that rule
+turned inside out — given a listing, which searches want it. Two SQL expressions
+of one rule is the real risk this feature carries, so the tests assert directly
+that they select the same listings across a grid of every combination of set and
+"any", rather than trusting the inversion by eye.
 
 **Criteria are columns, not JSON** — the run matches in SQL, which needs real
 columns, and it keeps the values typed. Cost: a migration per new criterion.
@@ -68,24 +69,54 @@ probably better than a max, but a saved search should be expressible as a browse
 search, so I'd add `min_price` to both at once or neither. What I'd add first is
 a location filter finer than region — "Leeds" is a big place to be alerted about.
 
+**Delivery is at-most-once.** Alerts are marked `notified_at` before the digest
+is queued, one statement per chunk of buyers. If a run dies mid-chunk those
+buyers miss that digest rather than getting two — the alerts are on their alerts
+page either way, so a lost email costs less than a duplicate one, which is the
+whole point of the feature. `USERS_PER_CHUNK` is the knob if you disagree.
+
 **Ownership is structural.** These records are only reached via
 `$user->savedSearches()` / `$user->alerts()`, and `destroy` resolves through the
 relationship rather than route-model binding, so another buyer's record is a 404
 by construction. Hence no policy: there's no unscoped query to protect.
 
+## Performance
+
+The first version of the run was a query per new listing plus a `firstOrCreate`
+per alert. Benchmarked, that was **1,544 queries and 12.2s for 200 saved searches
+against 20 new listings**, and 1,000 searches against 50 listings didn't finish
+inside two minutes. Matching listings to searches is a join, so it's now one
+`INSERT ... SELECT`: the same dataset is **1 query and 13.5ms**, and 50,000
+searches against 500 listings produces 4.8M alerts in 10.8s — still one
+statement. Deduplication (one alert per buyer per listing, oldest search
+credited) moved into `GROUP BY … min(s.id)` rather than pulling every matching
+search into PHP.
+
+Delivery was the other half. It now chunks buyers, marks `notified_at` once per
+chunk instead of once per digest, and loads only the five alerts a digest
+actually prints plus a count — without that cap, one very broad search after an
+outage pulls thousands of models into memory to send five lines. For 5,000
+searches against 100 listings: **3,992 queries and 61s → 198 queries and 1.9s**.
+Memory is now flat in alert volume: 93.2MB at 95,805 alerts, 96.6MB at 574,830.
+
 ## Where it wouldn't hold up
 
-- **Volume.** One inverted query per new listing is fine at a few dozen a day; a
-  bulk import of 10,000 is 10,000 queries in one long command. Then you'd batch
-  by region and fan out to queued jobs, or move to a set-based join. I didn't
-  write the clever join first — the loop is easier to read and test.
-- **Cost grows with saved searches, not listings.** The inverted query indexes
-  poorly because every criterion is `IS NULL OR …`; at scale you'd bucket by
-  region first.
-- **The unread count runs on every page load**, including pages that don't use it.
+- **The join is a nested loop.** Every criterion is `IS NULL OR …`, which no
+  index can serve, so cost is O(new listings × saved searches) — fine for a
+  hundred listings a day against a hundred thousand searches, not fine an order
+  of magnitude past that. The fix is to store saturating sentinels instead of
+  NULL (`''` for any region, the column max for any price, `0` for any bedrooms)
+  so all four become plain comparisons and a composite index can drive the join.
+  I didn't do it because it trades the clarity of "null means any" for
+  index-ability, and the measured numbers don't demand it yet.
+- **One digest per buyer is still one email per buyer.** Nothing here changes
+  that; it's the floor.
+- **The numbers above are SQLite.** On Postgres the `notified_at` round trip
+  could go away entirely via `INSERT … RETURNING`.
+- **The alerts table only grows.** It needs archiving long before any of the
+  above bites.
 - **`(user_id, listing_id)` unique forever** means a property withdrawn and
   re-listed a year later never alerts again. Probably right; arguably wrong.
-- **No cap on a digest's alert rows** — it names five and summarises the rest.
 
 ## Left out deliberately
 
@@ -102,3 +133,7 @@ the unread badge silently vanished on the alerts page because a page prop named
 `alerts` overrides a shared prop of the same name. I found the second by driving
 the running app, not from the tests — it's now a top-level scalar with a
 regression test across all three pages.
+
+The performance work above came from the same habit: the first implementation
+passed every test and read fine, and was three orders of magnitude off. Tests
+told me it was correct; only a benchmark told me it was usable.

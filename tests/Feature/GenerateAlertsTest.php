@@ -26,7 +26,7 @@ class GenerateAlertsTest extends TestCase
 
         $created = $this->generate();
 
-        $this->assertCount(1, $created);
+        $this->assertSame(1, $created);
         $this->assertDatabaseHas('alerts', [
             'user_id' => $user->id,
             'listing_id' => $listing->id,
@@ -53,7 +53,7 @@ class GenerateAlertsTest extends TestCase
 
         $this->liveListing();
 
-        $this->assertCount(2, $this->generate());
+        $this->assertSame(2, $this->generate());
         $this->assertDatabaseCount('alerts', 2);
     }
 
@@ -101,7 +101,7 @@ class GenerateAlertsTest extends TestCase
 
         $this->liveListing();
 
-        $this->assertCount(1, $this->generate());
+        $this->assertSame(1, $this->generate());
         $this->assertDatabaseCount('alerts', 1);
 
         // Attribution is stable rather than arbitrary: the older search wins.
@@ -113,8 +113,8 @@ class GenerateAlertsTest extends TestCase
         $this->savedSearch(User::factory()->create(), ['region' => 'Leeds']);
         $this->liveListing();
 
-        $this->assertCount(1, $this->generate());
-        $this->assertCount(0, $this->generate(), 'A second run must be a no-op.');
+        $this->assertSame(1, $this->generate());
+        $this->assertSame(0, $this->generate(), 'A second run must be a no-op.');
         $this->assertDatabaseCount('alerts', 1);
     }
 
@@ -141,7 +141,7 @@ class GenerateAlertsTest extends TestCase
         $this->savedSearch(User::factory()->create(), ['region' => 'Leeds']);
         $this->liveListing(['listed_at' => now()->subDays(6)]);
 
-        $this->assertCount(1, $this->generate());
+        $this->assertSame(1, $this->generate());
     }
 
     public function test_it_stops_looking_at_the_edge_of_the_recovery_window(): void
@@ -157,11 +157,105 @@ class GenerateAlertsTest extends TestCase
     }
 
     /**
-     * @return Collection<int, Alert>
+     * @return int the number of alerts created
      */
-    private function generate(): Collection
+    private function generate(): int
     {
         return app(GenerateAlerts::class)();
+    }
+
+    /**
+     * The join in GenerateAlerts is ListingCriteria::applyTo() turned inside out
+     * and applied to every new listing at once. It is the third expression of
+     * one rule, and the only one a buyer's alerts actually depend on — so assert
+     * it against the criteria object directly, across every combination of set
+     * and "any", rather than trusting the inversion by eye.
+     *
+     * Each search belongs to a different buyer, so the one-alert-per-buyer rule
+     * cannot mask a disagreement.
+     */
+    public function test_it_alerts_exactly_the_buyers_whose_criteria_match(): void
+    {
+        $searches = $this->savedSearchGrid();
+        $listings = $this->listingGrid();
+
+        $this->generate();
+
+        $alerted = Alert::query()->get()
+            ->map(fn (Alert $alert) => "{$alert->user_id}:{$alert->listing_id}")
+            ->flip();
+
+        $matches = 0;
+
+        foreach ($listings as $listing) {
+            foreach ($searches as $search) {
+                $expected = $search->criteria()->matches($listing);
+                $matches += (int) $expected;
+
+                $this->assertSame(
+                    $expected,
+                    $alerted->has("{$search->user_id}:{$listing->id}"),
+                    "Search {$search->id} vs listing {$listing->id}.",
+                );
+            }
+        }
+
+        $this->assertGreaterThan(0, $matches, 'Fixture should produce matches.');
+    }
+
+    /**
+     * Every combination of "set" and "any" across the four criteria, one per
+     * buyer.
+     *
+     * @return Collection<int, SavedSearch>
+     */
+    private function savedSearchGrid(): Collection
+    {
+        foreach ([null, PropertyType::Flat] as $type) {
+            foreach ([null, 300_000] as $maxPrice) {
+                foreach ([null, 3] as $minBedrooms) {
+                    foreach ([null, 'Leeds'] as $region) {
+                        SavedSearch::factory()->for(User::factory())->create([
+                            'property_type' => $type,
+                            'max_price' => $maxPrice,
+                            'min_bedrooms' => $minBedrooms,
+                            'region' => $region,
+                            // Before every listing goes live, so the created_at
+                            // clause isn't what's under test here.
+                            'created_at' => now()->subYear(),
+                        ]);
+                    }
+                }
+            }
+        }
+
+        return SavedSearch::all();
+    }
+
+    /**
+     * @return Collection<int, Listing>
+     */
+    private function listingGrid(): Collection
+    {
+        $branches = collect(['Leeds', 'Manchester'])
+            ->map(fn (string $region) => Branch::factory()->create(['region' => $region]));
+
+        foreach ($branches as $branch) {
+            foreach ([150_000, 300_000, 650_000] as $price) {
+                foreach ([1, 3] as $bedrooms) {
+                    foreach ([PropertyType::Flat, PropertyType::Detached] as $type) {
+                        Listing::factory()->live()->for($branch)->create([
+                            'price' => $price,
+                            'bedrooms' => $bedrooms,
+                            'property_type' => $type,
+                            'listed_at' => now()->subHour(),
+                        ]);
+                    }
+                }
+            }
+        }
+
+        return Listing::query()->with('branch')->get();
     }
 
     /**
