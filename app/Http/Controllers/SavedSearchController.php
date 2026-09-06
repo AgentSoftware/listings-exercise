@@ -41,11 +41,14 @@ class SavedSearchController extends Controller
             ...$request->criteria()->toArray(),
         ]);
 
-        // Deliberately no backfill: this search will alert on listings that go
-        // live from now on. Everything already on the market is one click away
-        // on the saved-searches page, which links to these criteria in the
-        // browse results.
-        return back()->with('flash', "Search saved. We'll email you when something new matches.");
+        // Land on the browse results for what was just saved, rather than back
+        // where they were. It answers "what matches right now" immediately —
+        // which is the other half of deciding not to backfill alerts — and it
+        // means the saved criteria, the URL and the results on screen cannot
+        // disagree, which they could when saving straight from an edited form.
+        return redirect()
+            ->route('listings.index', $request->criteria()->toArray())
+            ->with('flash', "Search saved. We'll email you when something new matches.");
     }
 
     /**

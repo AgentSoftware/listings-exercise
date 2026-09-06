@@ -94,10 +94,6 @@ class AlertPageTest extends TestCase
     }
 
     /**
-     * Every page, the alerts page included — a page prop silently overrides a
-     * shared one of the same name, which is how the badge went missing here.
-     */
-    /**
      * A property can sell after we alerted on it. The alert stays — we did tell
      * the user about it — so the page has to cope with a listing its own
      * detail route would now 404 on.
@@ -118,6 +114,10 @@ class AlertPageTest extends TestCase
             );
     }
 
+    /**
+     * Every page, the alerts page included — a page prop silently overrides a
+     * shared one of the same name, which is how the badge went missing here.
+     */
     public function test_the_unread_count_is_shared_with_every_page(): void
     {
         $user = $this->demoUser();

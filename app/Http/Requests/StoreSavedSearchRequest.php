@@ -34,13 +34,19 @@ class StoreSavedSearchRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
-                // A search with no criteria matches every new listing, which is
-                // the one thing Support asked us not to build. The field list
-                // comes from the criteria rules so it cannot drift.
-                $hasCriterion = collect(array_keys(ListingCriteria::rules()))
-                    ->contains(fn (string $field) => filled($this->input($field)));
+                // Nothing to say until the individual fields are valid — and
+                // building criteria from an unrecognised property type throws.
+                if ($validator->errors()->isNotEmpty()) {
+                    return;
+                }
 
-                if (! $hasCriterion) {
+                // A search with no criteria matches every new listing, which is
+                // the one thing Support asked us not to build.
+                //
+                // Ask the value object rather than testing the fields for
+                // presence: "0 or more bedrooms" is a value but not a filter,
+                // and filled() cannot tell those apart.
+                if (ListingCriteria::fromArray($validator->validated())->isEmpty()) {
                     $validator->errors()->add(
                         'criteria',
                         'Choose at least one filter — an empty search would alert you about every new listing.',

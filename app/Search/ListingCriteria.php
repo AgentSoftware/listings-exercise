@@ -43,7 +43,10 @@ readonly class ListingCriteria
         return new self(
             propertyType: $type === null ? null : PropertyType::from($type),
             maxPrice: $maxPrice === null ? null : (int) $maxPrice,
-            minBedrooms: $minBedrooms === null ? null : (int) $minBedrooms,
+            // "0 or more bedrooms" is every listing, so it is not a filter — and
+            // treating it as one would let a search past the "at least one
+            // criterion" guard and alert on everything. The form offers 0.
+            minBedrooms: in_array($minBedrooms, [null, '0'], true) ? null : (int) $minBedrooms,
             region: self::blankToNull($attributes['region'] ?? null),
         );
     }

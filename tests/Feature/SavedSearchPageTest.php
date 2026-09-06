@@ -71,7 +71,7 @@ class SavedSearchPageTest extends TestCase
             'property_type' => 'flat',
             'max_price' => '300000',
             'region' => 'Leeds',
-        ])->assertRedirect();
+        ])->assertRedirect('/?property_type=flat&max_price=300000&region=Leeds');
 
         $this->assertDatabaseHas('saved_searches', [
             'user_id' => $user->id,
@@ -100,6 +100,34 @@ class SavedSearchPageTest extends TestCase
         ])->assertSessionHasErrors('criteria');
 
         $this->assertDatabaseCount('saved_searches', 0);
+    }
+
+    /**
+     * "0 or more bedrooms" matches every listing, so it must not count as the
+     * one criterion that gets a search past the guard — filled() says a
+     * present 0 is a value, which is how this got through.
+     */
+    public function test_a_minimum_of_zero_bedrooms_is_not_a_criterion(): void
+    {
+        $this->demoUser();
+
+        $this->post('/saved-searches', ['min_bedrooms' => '0'])
+            ->assertSessionHasErrors('criteria');
+
+        $this->assertDatabaseCount('saved_searches', 0);
+    }
+
+    public function test_a_zero_minimum_is_dropped_rather_than_saved(): void
+    {
+        $this->demoUser();
+
+        $this->post('/saved-searches', ['region' => 'Leeds', 'min_bedrooms' => '0'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('saved_searches', [
+            'region' => 'Leeds',
+            'min_bedrooms' => null,
+        ]);
     }
 
     public function test_a_search_is_validated_the_same_way_as_the_browse_filters(): void

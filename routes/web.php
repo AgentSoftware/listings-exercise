@@ -10,7 +10,11 @@ Route::get('/listings/{listing}', [ListingController::class, 'show'])->name('lis
 
 Route::get('/saved-searches', [SavedSearchController::class, 'index'])->name('saved-searches.index');
 Route::post('/saved-searches', [SavedSearchController::class, 'store'])->name('saved-searches.store');
-Route::delete('/saved-searches/{savedSearch}', [SavedSearchController::class, 'destroy'])->name('saved-searches.destroy');
+// whereNumber so a non-numeric id is a 404 from the router rather than reaching
+// findOrFail(), which on Postgres would be an invalid-integer 500.
+Route::delete('/saved-searches/{savedSearch}', [SavedSearchController::class, 'destroy'])
+    ->whereNumber('savedSearch')
+    ->name('saved-searches.destroy');
 
 Route::get('/alerts', [AlertController::class, 'index'])->name('alerts.index');
 Route::post('/alerts/read', [AlertController::class, 'markAllRead'])->name('alerts.read');

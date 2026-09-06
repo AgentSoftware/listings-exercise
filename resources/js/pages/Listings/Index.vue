@@ -52,9 +52,11 @@ function reset() {
     search();
 }
 
-// Saves the filters as they are on screen, which is also what the URL shows.
+// Saves what is currently in the form, which may not be what the results below
+// show if it has been edited without searching. The server redirects to the
+// browse results for the saved criteria, so the two are reconciled either way.
 function saveSearch() {
-    router.post('/saved-searches', activeFilters.value, { preserveScroll: true });
+    router.post('/saved-searches', activeFilters.value);
 }
 </script>
 
