@@ -92,7 +92,7 @@ Laravel + **Inertia** + Vue 3 + Tailwind — the same shape as our internal apps
 | GET    | `/`                  | `Listings/Index`  | Live listings, paginated. Filters: `property_type`, `max_price`, `min_bedrooms`, `region`, `per_page`. |
 | GET    | `/listings/{listing}`| `Listings/Show`   | A single live listing. Non-live listings 404.              |
 | GET    | `/saved-searches`    | `SavedSearches/Index` | The current user's saved searches.                     |
-| POST   | `/saved-searches`    | —                 | Saves a search. Refuses one with no criteria.              |
+| POST   | `/saved-searches`    | —                 | Saves a search, then redirects to the browse results for it. Refuses one with no criteria. |
 | DELETE | `/saved-searches/{savedSearch}` | —      | Deletes one of the current user's searches.                |
 | GET    | `/alerts`            | `Alerts/Index`    | The current user's alerts, newest first, paginated.        |
 | POST   | `/alerts/read`       | —                 | Marks all of the current user's alerts read.               |
@@ -122,12 +122,19 @@ To see the whole thing end to end on a fresh database:
 ```bash
 php artisan migrate:fresh --seed
 
-# Save a search at http://127.0.0.1:8000/saved-searches, then publish a listing
-# that matches it — seeded listings all predate your search, so nothing matches
-# until something new goes live:
+# The order matters: a saved search only alerts on listings that go live after
+# it was saved, and every seeded listing already predates it. So pick a draft
+# first, save a search that matches it, and publish it last.
+
+# 1. Pick a draft and see what it is:
 php artisan tinker
->>> $l = App\Models\Listing::where('status', 'draft')->first();
->>> $l->update(['status' => 'live', 'listed_at' => now()]);
+>>> $listing = App\Models\Listing::with('branch')->where('status', 'draft')->first();
+>>> [$listing->branch->region, $listing->price, $listing->bedrooms, $listing->property_type->value];
+
+# 2. Save a search matching those at http://127.0.0.1:8000/saved-searches.
+
+# 3. Publish it, back in the same tinker session:
+>>> $listing->update(['status' => 'live', 'listed_at' => now()]);
 
 php artisan alerts:dispatch     # creates the alerts, queues one digest per user
 php artisan queue:work --once   # delivers it (or run `composer dev`, which
