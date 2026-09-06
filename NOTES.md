@@ -104,7 +104,10 @@ a location filter finer than region — "Leeds" is a big place to be alerted abo
 is queued, one statement per chunk of users. If a run dies mid-chunk those
 users miss that digest rather than getting two — the alerts are on their alerts
 page either way, so a lost email costs less than a duplicate one, which is the
-whole point of the feature. `USERS_PER_CHUNK` is the knob if you disagree.
+whole point of the feature. How many users a crash could affect is exactly the
+chunk size — `USERS_PER_CHUNK`, currently 100 — so that number is the trade
+between how many digests a failure can lose and how many update statements the
+run costs.
 
 **Ownership is structural.** These records are only reached via
 `$user->savedSearches()` / `$user->alerts()`, and `destroy` resolves through the
