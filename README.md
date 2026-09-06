@@ -61,19 +61,24 @@ app/
 database/
   factories/             BranchFactory, ListingFactory (with states),
                          SavedSearchFactory, AlertFactory
-  migrations/            branches, listings, saved_searches, alerts
+  migrations/            branches, listings, saved_searches, alerts,
+                         alerts.notified_at
   seeders/               DatabaseSeeder
 resources/js/
   pages/Listings/        Index.vue, Show.vue
   pages/SavedSearches/   Index.vue
   pages/Alerts/          Index.vue
   components/            AppLayout, ListingCard, ListingFilters, Pagination
+  criteria.js            what counts as a filter, mirroring ListingCriteria
+  format.js              price and date formatting
   app.js                 Inertia entry point
 routes/                  web.php, console.php (the daily schedule)
 tests/Feature/           ListingPageTest, ListingTest, SavedSearchTest,
                          SavedSearchPageTest, AlertPageTest,
                          GenerateAlertsTest, DispatchAlertsCommandTest
 tests/Unit/              ListingCriteriaTest
+tests/Support/           CriteriaOracle (the rule stated naively, to test the
+                         two SQL versions against — see NOTES.md)
 ```
 
 ### The domain
