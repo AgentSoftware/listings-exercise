@@ -26,9 +26,14 @@ class AppServiceProvider extends ServiceProvider
         // collections keep their data/links/meta structure regardless.
         JsonResource::withoutWrapping();
 
-        // Turn a lazy load into a failure everywhere except production, so an
-        // N+1 shows up as a broken test rather than as a slow page. The listings
-        // index was quietly issuing one branch query per row before this.
+        // Turn a lazy load into a failure outside production, so an N+1 shows up
+        // as a broken test rather than as a slow page. The listings index was
+        // quietly issuing one branch query per row before this.
+        //
+        // Note the framework only arms this on models hydrated from a query that
+        // returned more than one row (Builder::hydrate), which is where an N+1
+        // can actually happen. A lazy load on a single model — one resolved by
+        // route-model binding, say — still goes through silently.
         Model::preventLazyLoading(! $this->app->isProduction());
     }
 }

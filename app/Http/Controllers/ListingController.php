@@ -50,6 +50,11 @@ class ListingController extends Controller
     {
         abort_unless($listing->status === ListingStatus::Live, 404);
 
+        // Route-model binding resolves the listing alone, and ListingResource
+        // renders its branch. Not an N+1 on a single-record page, but it is a
+        // second round trip, and preventLazyLoading() does not flag it.
+        $listing->load('branch');
+
         return Inertia::render('Listings/Show', [
             'listing' => new ListingResource($listing),
         ]);

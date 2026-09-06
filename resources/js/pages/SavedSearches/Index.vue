@@ -31,13 +31,12 @@ function save() {
         '/saved-searches',
         { ...criteria(), name: name.value || null },
         {
+            // On success the server redirects to the browse results for the
+            // saved criteria, so there is nothing here to reset. This only
+            // matters on a validation failure, where the form stays put.
             preserveScroll: true,
             onStart: () => (processing.value = true),
             onFinish: () => (processing.value = false),
-            onSuccess: () => {
-                form.value = { ...blank };
-                name.value = '';
-            },
         },
     );
 }

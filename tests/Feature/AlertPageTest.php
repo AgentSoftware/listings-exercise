@@ -115,6 +115,27 @@ class AlertPageTest extends TestCase
     }
 
     /**
+     * A run inserts every alert it creates in one statement, so they all share
+     * a created_at. Ordering by that would put the same row on two pages, which
+     * is why the page orders by id — and why the index is (user_id, id).
+     */
+    public function test_pages_do_not_overlap_when_alerts_share_a_timestamp(): void
+    {
+        $user = $this->demoUser();
+        Alert::factory(30)->for($user)->create(['created_at' => now()]);
+
+        $ids = fn (string $url) => collect(
+            $this->get($url)->viewData('page')['props']['alerts']['data']
+        )->pluck('id')->all();
+
+        $first = $ids('/alerts?page=1');
+        $second = $ids('/alerts?page=2');
+
+        $this->assertSame([], array_intersect($first, $second), 'Pages must not overlap.');
+        $this->assertCount(30, array_unique([...$first, ...$second]));
+    }
+
+    /**
      * Every page, the alerts page included — a page prop silently overrides a
      * shared one of the same name, which is how the badge went missing here.
      */
