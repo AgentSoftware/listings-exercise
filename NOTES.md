@@ -47,12 +47,24 @@ search rather than whichever row the database reached first. It never changes
 afterwards, but that's the `NOT EXISTS` — once the alert exists the pair is
 never reconsidered, so a later run can't re-credit it either.
 
-**Backfill: no.** A saved search alerts on listings that go live from then on.
-Backfilling would dump thirty alerts on someone the moment they save a broad
-search — exactly the complaint Support raised. Instead the saved-searches page
-links each search to the browse results for its criteria, so "what matches right
-now" is one click away in a UI that already exists. That made the policy one
-clause of one query rather than a special case.
+**Backfill: no** — and not for anti-spam reasons. Backfilling a broad search
+would create hundreds of alert records, but the digest would still be one email,
+so Support's complaint doesn't decide this either way. Two other things do.
+
+The first is what the alerts list is *for*. Backfilled alerts are a frozen copy
+of a search the user can run live, so the page stops meaning "what's new since I
+asked" and becomes a stale snapshot that decays as those properties sell. The
+browse page answers "what matches right now" properly, and the saved-searches
+page links each search straight to it.
+
+The second is volume. Backfill makes the alerts table grow with
+`searches × listings already live` — paid at save time, per search, unbounded by
+how broad the criteria are — rather than with `new listings × matching searches`.
+That is a much worse shape for a table that only ever grows.
+
+The upside of deciding it this way is that the policy is one clause of the
+matching join (`s.created_at <= l.listed_at`) rather than a special case
+anywhere.
 
 **Criteria live in one value object.** Three places must agree on what "matches"
 means: the browse page queries with `applyTo()`, the saved-search form validates
