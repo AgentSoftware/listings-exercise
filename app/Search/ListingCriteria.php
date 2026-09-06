@@ -46,7 +46,11 @@ readonly class ListingCriteria
             // "0 or more bedrooms" is every listing, so it is not a filter — and
             // treating it as one would let a search past the "at least one
             // criterion" guard and alert on everything. The form offers 0.
-            minBedrooms: in_array($minBedrooms, [null, '0'], true) ? null : (int) $minBedrooms,
+            //
+            // Compared as a number, not as the string "0": only plain "0" gets
+            // this far today because the integer rule rejects "00" and "0.0",
+            // but that is validation's business, not this method's.
+            minBedrooms: $minBedrooms === null || (int) $minBedrooms === 0 ? null : (int) $minBedrooms,
             region: self::blankToNull($attributes['region'] ?? null),
         );
     }
