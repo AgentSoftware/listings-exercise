@@ -6,6 +6,7 @@ const props = defineProps({
     branches: { type: Array, required: true },
     propertyTypes: { type: Array, required: true },
     processing: { type: Boolean, default: false },
+    submitLabel: { type: String, default: 'Search' },
 });
 
 const emit = defineEmits(['update:modelValue', 'submit', 'reset']);
@@ -93,7 +94,7 @@ const fieldClasses =
             :disabled="processing"
             class="rounded-lg bg-slate-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-50"
         >
-            Search
+            {{ submitLabel }}
         </button>
 
         <button

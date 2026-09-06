@@ -40,6 +40,10 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user()?->only('id', 'name', 'email'),
             ],
+
+            // One-off confirmations after a redirect ("Search saved."), read
+            // lazily so pages that never show one don't touch the session.
+            'flash' => fn () => $request->session()->get('flash'),
         ];
     }
 }
