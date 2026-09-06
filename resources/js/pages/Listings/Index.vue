@@ -26,7 +26,7 @@ const form = ref({
 });
 
 // Blank fields are dropped rather than sent empty, so the URL stays clean — and
-// so a saved search records only the criteria the buyer actually chose.
+// so a saved search records only the criteria the user actually chose.
 const activeFilters = computed(() =>
     Object.fromEntries(
         Object.entries(form.value).filter(([, value]) => value !== '' && value !== null),

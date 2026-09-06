@@ -19,7 +19,7 @@ class AlertResource extends JsonResource
         return [
             'id' => $this->id,
             'listing' => new ListingResource($this->listing),
-            // Null once the buyer has deleted the search that produced this.
+            // Null once the user has deleted the search that produced this.
             'saved_search_label' => $this->savedSearch?->label(),
             'read_at' => $this->read_at?->toIso8601String(),
             'created_at' => $this->created_at->toIso8601String(),

@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
- * A buyer's standing request to hear about listings matching some criteria.
+ * A user's standing request to hear about listings matching some criteria.
  *
  * @property int $id
  * @property int $user_id
@@ -83,7 +83,7 @@ class SavedSearch extends Model
     }
 
     /**
-     * What to call this search in the UI. Most buyers won't name one, so fall
+     * What to call this search in the UI. Most users won't name one, so fall
      * back to describing what it looks for.
      */
     public function label(): string

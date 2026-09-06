@@ -14,14 +14,14 @@ use Inertia\Response;
 
 /**
  * Saved searches are always reached through their owner rather than looked up
- * by id and then checked, so a query that isn't scoped to the current buyer
+ * by id and then checked, so a query that isn't scoped to the current user
  * cannot be written by accident. That is why there is no policy here.
  */
 class SavedSearchController extends Controller
 {
     public function index(Request $request): Response
     {
-        $savedSearches = $this->buyer($request)
+        $savedSearches = $this->currentUser($request)
             ->savedSearches()
             ->withCount('alerts')
             ->latest('id')
@@ -36,7 +36,7 @@ class SavedSearchController extends Controller
 
     public function store(StoreSavedSearchRequest $request): RedirectResponse
     {
-        $this->buyer($request)->savedSearches()->create([
+        $this->currentUser($request)->savedSearches()->create([
             'name' => $request->input('name'),
             ...$request->criteria()->toArray(),
         ]);
@@ -50,11 +50,11 @@ class SavedSearchController extends Controller
 
     /**
      * Resolved through the relationship rather than by route-model binding, so
-     * another buyer's search is a 404 by construction.
+     * another user's search is a 404 by construction.
      */
     public function destroy(Request $request, string $savedSearch): RedirectResponse
     {
-        $this->buyer($request)->savedSearches()->findOrFail($savedSearch)->delete();
+        $this->currentUser($request)->savedSearches()->findOrFail($savedSearch)->delete();
 
         return back()->with('flash', 'Search deleted.');
     }

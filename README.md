@@ -107,7 +107,7 @@ Note the resolver returns `null` until the database is seeded, so run `php artis
 
 ### Saved-search alerts
 
-A buyer saves a search from the browse page ("Save this search") or from `/saved-searches`. Alerts are **not** generated the moment a listing goes live — they come from a command that runs once a day, so a buyer gets one digest rather than a message per property. See [`NOTES.md`](NOTES.md) for why.
+A user saves a search from the browse page ("Save this search") or from `/saved-searches`. Alerts are **not** generated the moment a listing goes live — they come from a command that runs once a day, so a user gets one digest rather than a message per property. See [`NOTES.md`](NOTES.md) for why.
 
 ```bash
 php artisan alerts:dispatch
@@ -115,7 +115,7 @@ php artisan alerts:dispatch
 
 The command is idempotent: it selects listings that have no alert row yet rather than "listings added today", so a missed day is caught up by the next run and running it by hand is always safe. It is scheduled for 18:00 daily in `routes/console.php`.
 
-Matching is a single `INSERT ... SELECT` — one statement for the whole run, whatever the volume — and delivery chunks buyers, marking `alerts.notified_at` as it goes so a run that dies part way through resumes rather than re-sending. See [`NOTES.md`](NOTES.md) for the numbers.
+Matching is a single `INSERT ... SELECT` — one statement for the whole run, whatever the volume — and delivery chunks users, marking `alerts.notified_at` as it goes so a run that dies part way through resumes rather than re-sending. See [`NOTES.md`](NOTES.md) for the numbers.
 
 To see the whole thing end to end on a fresh database:
 
@@ -129,12 +129,12 @@ php artisan tinker
 >>> $l = App\Models\Listing::where('status', 'draft')->first();
 >>> $l->update(['status' => 'live', 'listed_at' => now()]);
 
-php artisan alerts:dispatch     # creates the alerts, queues one digest per buyer
+php artisan alerts:dispatch     # creates the alerts, queues one digest per user
 php artisan queue:work --once   # delivers it (or run `composer dev`, which
                                 # keeps a worker running)
 ```
 
-The alert appears at `/alerts`. `NewListingMatches` is a queued notification, so the command reports digests as *queued* — with the default `MAIL_MAILER=log` the worker renders the digest into `storage/logs/laravel.log`, where you can read what the buyer would have received. No real email is sent and no queue worker is required for the alert records themselves.
+The alert appears at `/alerts`. `NewListingMatches` is a queued notification, so the command reports digests as *queued* — with the default `MAIL_MAILER=log` the worker renders the digest into `storage/logs/laravel.log`, where you can read what the user would have received. No real email is sent and no queue worker is required for the alert records themselves.
 
 ---
 

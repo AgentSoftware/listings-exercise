@@ -10,7 +10,7 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
 
 /**
- * One digest covering everything a buyer's saved searches matched in a single
+ * One digest covering everything a user's saved searches matched in a single
  * run — not one message per property. This is the whole point of generating
  * alerts on a schedule: the alerts themselves stay granular so the alerts page
  * can list properties individually, while delivery collapses to one message.
@@ -27,7 +27,7 @@ class NewListingMatches extends Notification implements ShouldQueue
      * How many properties the digest names before summarising the rest. The
      * full set is always on the alerts page.
      *
-     * This also bounds what the sender has to load: a buyer with a very broad
+     * This also bounds what the sender has to load: a user with a very broad
      * search can have thousands of pending alerts, and the digest only ever
      * needs this many of them plus the total.
      */
@@ -35,7 +35,7 @@ class NewListingMatches extends Notification implements ShouldQueue
 
     /**
      * @param  Collection<int, Alert>  $alerts  at most PREVIEW of them, newest first
-     * @param  int  $total  how many the buyer actually has pending
+     * @param  int  $total  how many the user actually has pending
      */
     public function __construct(
         private readonly Collection $alerts,

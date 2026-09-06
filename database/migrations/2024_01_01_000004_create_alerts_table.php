@@ -14,7 +14,7 @@ return new class extends Migration
             $table->foreignId('listing_id')->constrained()->cascadeOnDelete();
 
             // Which search matched first, for display only. Kept when that search
-            // is deleted: an alert records something we already told the buyer
+            // is deleted: an alert records something we already told the user
             // about, and cascading would also delete alerts that a second,
             // still-live search matched.
             $table->foreignId('saved_search_id')->nullable()->constrained()->nullOnDelete();

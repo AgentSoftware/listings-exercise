@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 abstract class Controller
 {
     /**
-     * The buyer this request belongs to.
+     * The user this request belongs to.
      *
      * Auth is stubbed (see the README): the resolver returns null until the
      * database is seeded, which is the same shape as a genuinely
@@ -16,7 +16,7 @@ abstract class Controller
      * than fail on a null — and returning a non-nullable User keeps every
      * caller honest about scoping its queries.
      */
-    protected function buyer(Request $request): User
+    protected function currentUser(Request $request): User
     {
         $user = $request->user();
 

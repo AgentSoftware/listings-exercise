@@ -9,7 +9,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 // Alerts are generated and delivered once a day rather than as listings go
-// live, so a buyer gets one digest instead of a message per property. The
+// live, so a user gets one digest instead of a message per property. The
 // evening slot means a day's listings arrive together.
 //
 // The command is idempotent, so running it by hand to demonstrate the feature

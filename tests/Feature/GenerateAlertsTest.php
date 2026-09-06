@@ -18,7 +18,7 @@ class GenerateAlertsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_it_alerts_a_buyer_whose_saved_search_the_listing_matches(): void
+    public function test_it_alerts_a_user_whose_saved_search_the_listing_matches(): void
     {
         $user = User::factory()->create();
         $search = $this->savedSearch($user, ['region' => 'Leeds', 'max_price' => 300_000]);
@@ -45,7 +45,7 @@ class GenerateAlertsTest extends TestCase
         $this->assertDatabaseCount('alerts', 0);
     }
 
-    public function test_every_buyer_with_a_matching_search_is_alerted(): void
+    public function test_every_user_with_a_matching_search_is_alerted(): void
     {
         $this->savedSearch(User::factory()->create(), ['region' => 'Leeds']);
         $this->savedSearch(User::factory()->create(), ['min_bedrooms' => 2]);
@@ -93,7 +93,7 @@ class GenerateAlertsTest extends TestCase
      * Support's constraint, at the record level: matching two of someone's
      * searches is still one property, so it is still one alert.
      */
-    public function test_a_listing_matching_two_of_a_buyers_searches_is_one_alert(): void
+    public function test_a_listing_matching_two_of_a_users_searches_is_one_alert(): void
     {
         $user = User::factory()->create();
         $first = $this->savedSearch($user, ['region' => 'Leeds']);
@@ -167,14 +167,14 @@ class GenerateAlertsTest extends TestCase
     /**
      * The join in GenerateAlerts is ListingCriteria::applyTo() turned inside out
      * and applied to every new listing at once. It is the third expression of
-     * one rule, and the only one a buyer's alerts actually depend on — so assert
+     * one rule, and the only one a user's alerts actually depend on — so assert
      * it against the criteria object directly, across every combination of set
      * and "any", rather than trusting the inversion by eye.
      *
-     * Each search belongs to a different buyer, so the one-alert-per-buyer rule
+     * Each search belongs to a different user, so the one-alert-per-user rule
      * cannot mask a disagreement.
      */
-    public function test_it_alerts_exactly_the_buyers_whose_criteria_match(): void
+    public function test_it_alerts_exactly_the_users_whose_criteria_match(): void
     {
         $searches = $this->savedSearchGrid();
         $listings = $this->listingGrid();
@@ -205,7 +205,7 @@ class GenerateAlertsTest extends TestCase
 
     /**
      * Every combination of "set" and "any" across the four criteria, one per
-     * buyer.
+     * user.
      *
      * @return Collection<int, SavedSearch>
      */

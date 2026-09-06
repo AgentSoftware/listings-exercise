@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
 
-            // Optional — buyers rarely name a search, so the UI falls back to
+            // Optional — users rarely name a search, so the UI falls back to
             // describing the criteria. See SavedSearch::label().
             $table->string('name')->nullable();
 

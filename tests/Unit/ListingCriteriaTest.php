@@ -63,7 +63,7 @@ class ListingCriteriaTest extends TestCase
     /**
      * applyTo() and matches() are two expressions of one rule, used in different
      * places: the browse page filters in SQL, the nightly alert run checks a
-     * listing it already holds. If they ever disagree, a buyer is alerted about
+     * listing it already holds. If they ever disagree, a user is alerted about
      * a property the site itself would not have shown them — so assert directly
      * that they select the same listings.
      */

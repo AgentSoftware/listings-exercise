@@ -15,10 +15,10 @@ class DispatchAlerts extends Command
 {
     protected $signature = 'alerts:dispatch';
 
-    protected $description = 'Alert buyers about new listings matching their saved searches';
+    protected $description = 'Alert users about new listings matching their saved searches';
 
     /**
-     * Buyers held in memory at once. The run itself is one statement, so this
+     * Users held in memory at once. The run itself is one statement, so this
      * is the only thing that grows with the size of a catch-up run.
      */
     private const USERS_PER_CHUNK = 100;
@@ -48,7 +48,7 @@ class DispatchAlerts extends Command
     }
 
     /**
-     * One message per buyer covering everything they haven't been told about —
+     * One message per user covering everything they haven't been told about —
      * sending per alert would undo the reason this runs on a schedule.
      *
      * Driven by notified_at rather than by whatever this run happened to create,
@@ -65,7 +65,7 @@ class DispatchAlerts extends Command
         User::query()
             ->whereHas('alerts', fn (Builder $alerts) => $alerts->whereNull('notified_at'))
             // Only what a digest actually prints, plus the true total. Without
-            // the limit this loads every pending alert a buyer has, so one very
+            // the limit this loads every pending alert a user has, so one very
             // broad search after an outage could pull thousands of models per
             // chunk into memory.
             ->withCount(['alerts' => fn (Builder $alerts) => $alerts
@@ -83,11 +83,11 @@ class DispatchAlerts extends Command
                 }
 
                 // Marked before sending, in one statement for the whole chunk
-                // rather than one per buyer — which is the difference between a
+                // rather than one per user — which is the difference between a
                 // handful of writes and one per digest.
                 //
                 // That makes delivery at-most-once: if the run dies here, those
-                // buyers miss a digest rather than getting two. The alerts are
+                // users miss a digest rather than getting two. The alerts are
                 // on their alerts page either way, so a lost email costs less
                 // than a duplicate one — which is the whole point of the
                 // feature. Lower USERS_PER_CHUNK to narrow that window.

@@ -15,19 +15,19 @@ class SavedSearchPageTest extends TestCase
 
     /**
      * The auth stub resolves the first user by id, so this is "the signed-in
-     * buyer" and any user created afterwards is somebody else.
+     * user" and any user created afterwards is somebody else.
      */
-    private function buyer(): User
+    private function demoUser(): User
     {
         return User::factory()->create();
     }
 
-    public function test_index_lists_only_the_buyers_own_searches(): void
+    public function test_index_lists_only_the_users_own_searches(): void
     {
-        $buyer = $this->buyer();
+        $user = $this->demoUser();
         $someoneElse = User::factory()->create();
 
-        SavedSearch::factory(2)->for($buyer)->create(['region' => 'Leeds']);
+        SavedSearch::factory(2)->for($user)->create(['region' => 'Leeds']);
         SavedSearch::factory(3)->for($someoneElse)->create(['region' => 'Leeds']);
 
         $this->get('/saved-searches')
@@ -42,8 +42,8 @@ class SavedSearchPageTest extends TestCase
 
     public function test_index_describes_each_search_and_links_to_its_matches(): void
     {
-        $buyer = $this->buyer();
-        SavedSearch::factory()->for($buyer)->create([
+        $user = $this->demoUser();
+        SavedSearch::factory()->for($user)->create([
             'property_type' => PropertyType::Flat,
             'max_price' => 300_000,
             'region' => 'Leeds',
@@ -62,9 +62,9 @@ class SavedSearchPageTest extends TestCase
             );
     }
 
-    public function test_a_buyer_can_save_a_search(): void
+    public function test_a_user_can_save_a_search(): void
     {
-        $buyer = $this->buyer();
+        $user = $this->demoUser();
 
         $this->post('/saved-searches', [
             'name' => 'Near Mum',
@@ -74,7 +74,7 @@ class SavedSearchPageTest extends TestCase
         ])->assertRedirect();
 
         $this->assertDatabaseHas('saved_searches', [
-            'user_id' => $buyer->id,
+            'user_id' => $user->id,
             'name' => 'Near Mum',
             'property_type' => 'flat',
             'max_price' => 300_000,
@@ -89,7 +89,7 @@ class SavedSearchPageTest extends TestCase
      */
     public function test_a_search_with_no_criteria_is_rejected(): void
     {
-        $this->buyer();
+        $this->demoUser();
 
         $this->post('/saved-searches', [
             'name' => 'Everything',
@@ -104,7 +104,7 @@ class SavedSearchPageTest extends TestCase
 
     public function test_a_search_is_validated_the_same_way_as_the_browse_filters(): void
     {
-        $this->buyer();
+        $this->demoUser();
 
         $this->post('/saved-searches', ['property_type' => 'castle'])
             ->assertSessionHasErrors('property_type');
@@ -115,19 +115,19 @@ class SavedSearchPageTest extends TestCase
         $this->assertDatabaseCount('saved_searches', 0);
     }
 
-    public function test_a_buyer_can_delete_their_own_search(): void
+    public function test_a_user_can_delete_their_own_search(): void
     {
-        $buyer = $this->buyer();
-        $search = SavedSearch::factory()->for($buyer)->create(['region' => 'Leeds']);
+        $user = $this->demoUser();
+        $search = SavedSearch::factory()->for($user)->create(['region' => 'Leeds']);
 
         $this->delete("/saved-searches/{$search->id}")->assertRedirect();
 
         $this->assertDatabaseMissing('saved_searches', ['id' => $search->id]);
     }
 
-    public function test_a_buyer_cannot_delete_someone_elses_search(): void
+    public function test_a_user_cannot_delete_someone_elses_search(): void
     {
-        $this->buyer();
+        $this->demoUser();
         $theirs = SavedSearch::factory()->for(User::factory())->create(['region' => 'Leeds']);
 
         $this->delete("/saved-searches/{$theirs->id}")->assertNotFound();

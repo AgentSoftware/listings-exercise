@@ -8,7 +8,7 @@ use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Records an alert for every buyer whose saved search matches a recently
+ * Records an alert for every user whose saved search matches a recently
  * published listing.
  *
  * This runs on a schedule rather than the moment a listing goes live, because
@@ -55,7 +55,7 @@ class GenerateAlerts
     }
 
     /**
-     * Every (buyer, listing) pair that should produce an alert and hasn't yet.
+     * Every (user, listing) pair that should produce an alert and hasn't yet.
      *
      * This is ListingCriteria::applyTo() turned inside out and applied to every
      * new listing at once. A null criterion means "any", so each one is an
@@ -91,7 +91,7 @@ class GenerateAlerts
                 ->from('alerts as a')
                 ->whereColumn('a.user_id', 's.user_id')
                 ->whereColumn('a.listing_id', 'l.id'))
-            // One alert per buyer per listing, however many of their searches
+            // One alert per user per listing, however many of their searches
             // matched — the anti-spam rule, applied in the database rather than
             // by pulling every matching search into PHP to deduplicate. min(s.id)
             // credits the oldest matching search, so attribution is stable.

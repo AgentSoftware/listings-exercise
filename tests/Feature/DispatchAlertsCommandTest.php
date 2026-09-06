@@ -17,10 +17,10 @@ class DispatchAlertsCommandTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * The reason this feature is scheduled rather than event-driven: a buyer
+     * The reason this feature is scheduled rather than event-driven: a user
      * whose search matched five of today's listings hears from us once.
      */
-    public function test_a_buyer_gets_one_digest_however_many_listings_matched(): void
+    public function test_a_user_gets_one_digest_however_many_listings_matched(): void
     {
         Notification::fake();
 
@@ -57,7 +57,7 @@ class DispatchAlertsCommandTest extends TestCase
 
     /**
      * The digest names a few properties and counts the rest, and the sender only
-     * ever loads that few — a buyer with a very broad search after an outage
+     * ever loads that few — a user with a very broad search after an outage
      * must not pull thousands of alerts into memory to be emailed about five.
      */
     public function test_a_large_digest_names_a_few_properties_and_counts_the_rest(): void
@@ -88,21 +88,21 @@ class DispatchAlertsCommandTest extends TestCase
         $this->assertSame(0, $user->alerts()->whereNull('notified_at')->count());
     }
 
-    public function test_each_buyer_is_told_only_about_their_own_matches(): void
+    public function test_each_user_is_told_only_about_their_own_matches(): void
     {
         Notification::fake();
 
-        $leedsBuyer = User::factory()->create();
-        $manchesterBuyer = User::factory()->create();
-        $this->savedSearch($leedsBuyer, ['region' => 'Leeds']);
-        $this->savedSearch($manchesterBuyer, ['region' => 'Manchester']);
+        $leedsUser = User::factory()->create();
+        $manchesterUser = User::factory()->create();
+        $this->savedSearch($leedsUser, ['region' => 'Leeds']);
+        $this->savedSearch($manchesterUser, ['region' => 'Manchester']);
 
         $this->liveListings(Branch::factory()->create(['region' => 'Leeds']), 2);
 
         $this->artisan('alerts:dispatch')->assertSuccessful();
 
-        Notification::assertSentToTimes($leedsBuyer, NewListingMatches::class, 1);
-        Notification::assertNotSentTo($manchesterBuyer, NewListingMatches::class);
+        Notification::assertSentToTimes($leedsUser, NewListingMatches::class, 1);
+        Notification::assertNotSentTo($manchesterUser, NewListingMatches::class);
     }
 
     public function test_a_quiet_day_sends_nothing(): void

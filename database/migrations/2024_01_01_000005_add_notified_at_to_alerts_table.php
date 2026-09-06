@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('alerts', function (Blueprint $table) {
             // When the digest covering this alert was sent. Distinct from
-            // read_at, which is the buyer marking it read in the UI.
+            // read_at, which is the user marking it read in the UI.
             //
             // This is what a run hands to the delivery step, replacing "keep
             // every created alert in memory and group it there". It also makes

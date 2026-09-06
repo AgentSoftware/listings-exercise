@@ -15,7 +15,7 @@ class AlertController extends Controller
 {
     public function index(Request $request): Response
     {
-        $alerts = $this->buyer($request)
+        $alerts = $this->currentUser($request)
             ->alerts()
             ->with(['listing.branch', 'savedSearch'])
             ->latest('id')
@@ -29,12 +29,12 @@ class AlertController extends Controller
 
     /**
      * Marking read is an explicit action rather than a side effect of loading
-     * the page, so the unread badge behaves the way the buyer expects when they
+     * the page, so the unread badge behaves the way the user expects when they
      * page back and forth.
      */
     public function markAllRead(Request $request): RedirectResponse
     {
-        $this->buyer($request)->alerts()->unread()->update(['read_at' => now()]);
+        $this->currentUser($request)->alerts()->unread()->update(['read_at' => now()]);
 
         return back()->with('flash', 'Alerts marked as read.');
     }

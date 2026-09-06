@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rules\Enum;
 
 /**
- * A set of listing search criteria — the shape a buyer fills in on the filter
+ * A set of listing search criteria — the shape a user fills in on the filter
  * form and the shape a saved search persists.
  *
  * Three places have to agree on what "matches" means: the browse filters, the
@@ -126,7 +126,7 @@ readonly class ListingCriteria
     }
 
     /**
-     * A short human label, for a saved search the buyer never named and for the
+     * A short human label, for a saved search the user never named and for the
      * alert digest.
      */
     public function summary(): string
