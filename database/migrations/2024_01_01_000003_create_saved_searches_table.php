@@ -26,6 +26,10 @@ return new class extends Migration
             $table->string('region')->nullable();
 
             $table->timestamps();
+
+            // SQLite does not index a foreign key for you, and every read of
+            // this table is "the current user's searches".
+            $table->index('user_id');
         });
     }
 

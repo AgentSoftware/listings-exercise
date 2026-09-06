@@ -27,8 +27,11 @@ return new class extends Migration
             // rather than only in the code that writes alerts.
             $table->unique(['user_id', 'listing_id']);
 
-            // The alerts page lists one user's alerts, newest first.
-            $table->index(['user_id', 'created_at']);
+            // The alerts page lists one user's alerts, newest first — ordered by
+            // id, not created_at: a run inserts every alert it creates in one
+            // statement, so they all share a created_at and ordering by it would
+            // put the same row on two pages.
+            $table->index(['user_id', 'id']);
         });
     }
 

@@ -10,6 +10,7 @@ use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Facades\Cache;
 
 class DispatchAlerts extends Command
 {
@@ -23,7 +24,37 @@ class DispatchAlerts extends Command
      */
     private const USERS_PER_CHUNK = 100;
 
+    /**
+     * Held for the length of a run. Reading the un-notified alerts and marking
+     * them notified are separate statements, so two overlapping runs would both
+     * pick up the same alerts and send the same digest twice — the one failure
+     * this whole feature exists to avoid. The README encourages running this by
+     * hand, which is exactly when it could collide with the schedule.
+     *
+     * The lock lives here rather than on the schedule entry, because
+     * withoutOverlapping() only guards scheduled invocations against each other
+     * and would do nothing about a manual run.
+     */
+    private const LOCK = 'alerts:dispatch';
+
     public function handle(GenerateAlerts $generateAlerts): int
+    {
+        $lock = Cache::lock(self::LOCK, 600);
+
+        if (! $lock->get()) {
+            $this->warn('Another alerts:dispatch run is in progress; doing nothing.');
+
+            return self::SUCCESS;
+        }
+
+        try {
+            return $this->dispatchAlerts($generateAlerts);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function dispatchAlerts(GenerateAlerts $generateAlerts): int
     {
         $created = $generateAlerts();
 

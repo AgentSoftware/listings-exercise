@@ -13,5 +13,6 @@ Artisan::command('inspire', function () {
 // evening slot means a day's listings arrive together.
 //
 // The command is idempotent, so running it by hand to demonstrate the feature
-// is safe — see the README.
+// is safe — see the README. It takes its own lock rather than relying on
+// withoutOverlapping() here, which would not cover a manual run.
 Schedule::command('alerts:dispatch')->dailyAt('18:00');

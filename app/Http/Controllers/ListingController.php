@@ -26,7 +26,10 @@ class ListingController extends Controller
         // `id` is a tiebreaker: without it, listings sharing a `listed_at` can be
         // ordered differently between page requests, which duplicates or skips
         // rows as you page through.
-        $listings = $query->latest('listed_at')
+        // ListingResource renders the branch for every row, so load it here
+        // rather than one query per listing.
+        $listings = $query->with('branch')
+            ->latest('listed_at')
             ->orderByDesc('id')
             ->paginate($request->integer('per_page', 15))
             ->withQueryString();

@@ -9,6 +9,7 @@ use App\Models\SavedSearch;
 use App\Models\User;
 use App\Notifications\NewListingMatches;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -103,6 +104,35 @@ class DispatchAlertsCommandTest extends TestCase
 
         Notification::assertSentToTimes($leedsUser, NewListingMatches::class, 1);
         Notification::assertNotSentTo($manchesterUser, NewListingMatches::class);
+    }
+
+    /**
+     * Two runs overlapping would read the same un-notified alerts and send the
+     * same digest twice, so a second run stands down rather than racing.
+     */
+    public function test_it_stands_down_while_another_run_holds_the_lock(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create();
+        $this->savedSearch($user, ['region' => 'Leeds']);
+        $this->liveListings(Branch::factory()->create(['region' => 'Leeds']), 2);
+
+        $lock = Cache::lock('alerts:dispatch', 60);
+        $this->assertTrue($lock->get(), 'Precondition: the lock is free.');
+
+        $this->artisan('alerts:dispatch')
+            ->expectsOutputToContain('Another alerts:dispatch run is in progress')
+            ->assertSuccessful();
+
+        $this->assertDatabaseCount('alerts', 0);
+        Notification::assertNothingSent();
+
+        // And it runs normally once the lock is free.
+        $lock->release();
+        $this->artisan('alerts:dispatch')->assertSuccessful();
+        $this->assertDatabaseCount('alerts', 2);
+        Notification::assertSentToTimes($user, NewListingMatches::class, 1);
     }
 
     public function test_a_quiet_day_sends_nothing(): void
