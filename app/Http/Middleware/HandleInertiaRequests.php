@@ -45,8 +45,9 @@ class HandleInertiaRequests extends Middleware
             // lazily so pages that never show one don't touch the session.
             'flash' => fn () => $request->session()->get('flash'),
 
-            // Backs the nav badge, so it is needed on every page. One indexed
-            // count per request — see NOTES.md if that ever stops being cheap.
+            // Backs the nav badge, so it is needed on every page, including the
+            // ones that never render it. Indexed on (user_id, read_at); NOTES.md
+            // records the cost of carrying that index on a bulk-inserted table.
             //
             // Deliberately a top-level scalar rather than an `alerts` object: a
             // page prop of the same name silently overrides a shared one, and

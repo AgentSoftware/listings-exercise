@@ -18,6 +18,15 @@ use Illuminate\Validation\Rules\Enum;
  */
 readonly class ListingCriteria
 {
+    /**
+     * Upper bound for a price filter. Both saved_searches.max_price and
+     * listings.price are unsignedInteger, so an unbounded value is an
+     * out-of-range insert on MySQL and Postgres and a silently out-of-domain
+     * row on SQLite. This is a domain bound comfortably inside the column,
+     * matching how min_bedrooms is capped at 20 rather than at 255.
+     */
+    public const MAX_PRICE = 100_000_000;
+
     public function __construct(
         public ?PropertyType $propertyType = null,
         public ?int $maxPrice = null,
@@ -65,7 +74,7 @@ readonly class ListingCriteria
     {
         return [
             'property_type' => ['nullable', new Enum(PropertyType::class)],
-            'max_price' => ['nullable', 'integer', 'min:0'],
+            'max_price' => ['nullable', 'integer', 'min:0', 'max:'.self::MAX_PRICE],
             'min_bedrooms' => ['nullable', 'integer', 'min:0', 'max:20'],
             'region' => ['nullable', 'string', 'max:100'],
         ];

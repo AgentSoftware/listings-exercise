@@ -32,6 +32,11 @@ return new class extends Migration
             // statement, so they all share a created_at and ordering by it would
             // put the same row on two pages.
             $table->index(['user_id', 'id']);
+
+            // The unread badge is a shared prop, so this count runs on every
+            // page load; without it that means scanning every alert the user
+            // has ever received.
+            $table->index(['user_id', 'read_at']);
         });
     }
 

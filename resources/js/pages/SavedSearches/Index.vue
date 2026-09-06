@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '../../components/AppLayout.vue';
 import ListingFilters from '../../components/ListingFilters.vue';
+import { activeCriteria, hasCriteria } from '../../criteria';
 
 defineProps({
     savedSearches: { type: Array, required: true },
@@ -17,13 +18,11 @@ const form = ref({ ...blank });
 const name = ref('');
 const processing = ref(false);
 
-const hasCriteria = computed(() => Object.values(form.value).some(Boolean));
+const canSave = computed(() => hasCriteria(form.value));
 
-// Same shape the browse page posts: blanks are dropped rather than sent empty.
+// Same shape the browse page posts.
 function criteria() {
-    return Object.fromEntries(
-        Object.entries(form.value).filter(([, value]) => value !== '' && value !== null),
-    );
+    return activeCriteria(form.value);
 }
 
 function save() {
@@ -72,7 +71,7 @@ function matchesUrl(search) {
                 v-model="form"
                 :branches="branches"
                 :property-types="propertyTypes"
-                :processing="processing || !hasCriteria"
+                :processing="processing || !canSave"
                 submit-label="Save search"
                 @submit="save"
                 @reset="reset"

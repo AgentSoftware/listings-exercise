@@ -5,6 +5,7 @@ import AppLayout from '../../components/AppLayout.vue';
 import ListingCard from '../../components/ListingCard.vue';
 import ListingFilters from '../../components/ListingFilters.vue';
 import Pagination from '../../components/Pagination.vue';
+import { activeCriteria, hasCriteria } from '../../criteria';
 
 const props = defineProps({
     listings: { type: Object, required: true },
@@ -27,13 +28,9 @@ const form = ref({
 
 // Blank fields are dropped rather than sent empty, so the URL stays clean — and
 // so a saved search records only the criteria the user actually chose.
-const activeFilters = computed(() =>
-    Object.fromEntries(
-        Object.entries(form.value).filter(([, value]) => value !== '' && value !== null),
-    ),
-);
+const activeFilters = computed(() => activeCriteria(form.value));
 
-const hasFilters = computed(() => Object.keys(activeFilters.value).length > 0);
+const hasFilters = computed(() => hasCriteria(form.value));
 
 function search() {
     router.get('/', activeFilters.value, {

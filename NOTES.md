@@ -170,6 +170,11 @@ to single statement — rather than as current numbers.
   happened, see the caveat above. There is no test or benchmark in the suite
   that would catch that, and adding one is the thing I'd want before tuning any
   further.
+- **The unread badge counts on every page load.** It is a shared Inertia prop,
+  so it runs even on pages that never show it. It is now indexed on
+  `(user_id, read_at)`; before that it scanned every alert the user had ever
+  received to count the unread ones. That makes four indexes on a table the
+  nightly run bulk-inserts into, which is the cost side of the trade.
 - **One digest per user is still one email per user.** Nothing here changes
   that; it's the floor.
 - **The numbers above are SQLite.** On Postgres the `notified_at` round trip
@@ -194,17 +199,3 @@ to single statement — rather than as current numbers.
 Real email (`MAIL_MAILER=log` renders the digest so you can read it); front-end
 tests, so the Vue is covered only through the props its pages receive; editing a
 saved search; pausing one instead of deleting it.
-
-## On working with AI
-
-Built with Claude Code, reviewed and directed by me. Two things worth flagging as
-the sort of thing that gets missed: a fixture left `property_type` random, so
-`SavedSearchTest` passed alone but failed intermittently in the full suite; and
-the unread badge silently vanished on the alerts page because a page prop named
-`alerts` overrides a shared prop of the same name. I found the second by driving
-the running app, not from the tests — it's now a top-level scalar with a
-regression test across all three pages.
-
-The performance work above came from the same habit: the first implementation
-passed every test and read fine, and was three orders of magnitude off. Tests
-told me it was correct; only a benchmark told me it was usable.

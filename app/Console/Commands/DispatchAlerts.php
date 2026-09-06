@@ -37,9 +37,24 @@ class DispatchAlerts extends Command
      */
     private const LOCK = 'alerts:dispatch';
 
+    /**
+     * How long that lock survives if it is never released.
+     *
+     * Laravel's locks cannot be extended once taken, so this has to be sized
+     * past the worst-case run rather than refreshed as it goes. If it expires
+     * while sendDigests() is still walking chunks, the next run — scheduled or
+     * manual — picks up the alerts this one has not marked yet and sends them a
+     * second time, which is the duplicate the lock exists to prevent.
+     *
+     * Erring high costs the other way: a hard-killed process blocks the next
+     * run for this long. A run that gets anywhere near an hour is a signal the
+     * catch-up window is too big to clear in one pass, not a reason to raise it.
+     */
+    private const LOCK_SECONDS = 3600;
+
     public function handle(GenerateAlerts $generateAlerts): int
     {
-        $lock = Cache::lock(self::LOCK, 600);
+        $lock = Cache::lock(self::LOCK, self::LOCK_SECONDS);
 
         if (! $lock->get()) {
             $this->warn('Another alerts:dispatch run is in progress; doing nothing.');

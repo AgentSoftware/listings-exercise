@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\PropertyType;
 use App\Models\SavedSearch;
 use App\Models\User;
+use App\Search\ListingCriteria;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
@@ -128,6 +129,20 @@ class SavedSearchPageTest extends TestCase
             'region' => 'Leeds',
             'min_bedrooms' => null,
         ]);
+    }
+
+    /**
+     * max_price lands in an unsignedInteger column, so an unbounded value is an
+     * out-of-range insert on MySQL and Postgres and an out-of-domain row here.
+     */
+    public function test_an_absurd_max_price_is_rejected(): void
+    {
+        $this->demoUser();
+
+        $this->post('/saved-searches', ['max_price' => ListingCriteria::MAX_PRICE + 1])
+            ->assertSessionHasErrors('max_price');
+
+        $this->assertDatabaseCount('saved_searches', 0);
     }
 
     public function test_a_search_is_validated_the_same_way_as_the_browse_filters(): void
