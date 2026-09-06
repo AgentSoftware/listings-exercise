@@ -44,6 +44,12 @@ class HandleInertiaRequests extends Middleware
             // One-off confirmations after a redirect ("Search saved."), read
             // lazily so pages that never show one don't touch the session.
             'flash' => fn () => $request->session()->get('flash'),
+
+            // Backs the nav badge, so it is needed on every page. One indexed
+            // count per request — see NOTES.md if that ever stops being cheap.
+            'alerts' => [
+                'unread_count' => fn () => $request->user()?->alerts()->unread()->count() ?? 0,
+            ],
         ];
     }
 }

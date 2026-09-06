@@ -11,6 +11,8 @@ const page = usePage();
 
 const flash = computed(() => page.props.flash);
 
+const unreadAlerts = computed(() => page.props.alerts?.unread_count ?? 0);
+
 // Matches on the path only, so a filtered browse URL still marks Browse active.
 function isCurrent(href) {
     const path = page.url.split('?')[0];
@@ -40,6 +42,15 @@ function navClasses(href) {
                     <Link href="/" :class="navClasses('/')">Browse</Link>
                     <Link href="/saved-searches" :class="navClasses('/saved-searches')">
                         Saved searches
+                    </Link>
+                    <Link href="/alerts" :class="[navClasses('/alerts'), 'flex items-center gap-1.5']">
+                        Alerts
+                        <span
+                            v-if="unreadAlerts"
+                            class="rounded-full bg-slate-900 px-1.5 py-0.5 text-xs font-medium text-white"
+                        >
+                            {{ unreadAlerts }}
+                        </span>
                     </Link>
                 </nav>
             </div>
