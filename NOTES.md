@@ -129,36 +129,6 @@ catch-up window is too big to clear in one pass, not that the hour is too short.
 relationship rather than route-model binding, so another user's record is a 404
 by construction. Hence no policy: there's no unscoped query to protect.
 
-## Performance
-
-The first version of the run was a query per new listing plus a `firstOrCreate`
-per alert. Benchmarked, that was **1,544 queries and 12.2s for 200 saved searches
-against 20 new listings**, and 1,000 searches against 50 listings didn't finish
-inside two minutes. Matching listings to searches is a join, so it's now one
-`INSERT ... SELECT`: the same dataset is **1 query and 13.5ms**, and 50,000
-searches against 500 listings produces 4.8M alerts in 10.8s — still one
-statement. Deduplication (one alert per user per listing, oldest search
-credited) moved into `GROUP BY … min(s.id)` rather than pulling every matching
-search into PHP.
-
-Delivery was the other half. It now chunks users, marks `notified_at` once per
-chunk instead of once per digest, and loads only the five alerts a digest
-actually prints plus a count — without that cap, one very broad search after an
-outage pulls thousands of models into memory to send five lines. For 5,000
-searches against 100 listings: **3,992 queries and 61s → 198 queries and 1.9s**.
-Memory is now flat in alert volume: 93.2MB at 95,805 alerts, 96.6MB at 574,830.
-
-**Caveat on the timings.** Every figure above was measured before I added an
-index on `saved_searches.user_id` — which exists for the saved-searches page,
-not for this. Adding it changed the run's query plan: SQLite used to drive from
-the new listings and scan the searches, and now drives from the searches and
-seeks the listings. The query *counts* are unaffected, since an index cannot
-change how many statements run, but the times were taken against a plan that no
-longer executes, and repeated index seeks are not obviously cheaper than the
-sequential scan they replaced. I have not re-measured, so treat the millisecond
-figures as describing the shape of the change — three orders of magnitude, loop
-to single statement — rather than as current numbers.
-
 ## Where it wouldn't hold up
 
 - **The join is a nested loop.** Every criterion is `IS NULL OR …`, which no
