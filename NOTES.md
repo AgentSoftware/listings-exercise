@@ -24,11 +24,9 @@ listener, no publish action, no observer — the run derives "went live" from
 that goes live and sells before the evening run is never in the result set, so we
 don't advertise a property that's already gone.
 
-**The cost is latency** — up to a day. For most searches a digest of six houses
-reads better than six pings, but someone hunting in a hot market wants it sooner.
-The answer isn't a faster cron, it's per-search frequency (instant / daily /
-weekly), with "instant" going back to an event-driven path for users who opt in.
-That's what I'd build next.
+**The cost is latency** — up to a day. It is assumed that a latency of up to 24 hours
+until a user is notified of a property listing matching one of their searches is 
+acceptable for the vast majority of users.
 
 ## Other decisions
 
@@ -42,8 +40,12 @@ correctness mechanism.
 
 **Duplicate alerts: one, not two.** A listing matching two of your searches is
 still one property. That's a unique index on `alerts (user_id, listing_id)`, so
-it's the database's guarantee, not a rule the writing code has to remember. The
-oldest matching search is credited, so attribution is stable between runs.
+it's the database's guarantee, not a rule the writing code has to remember.
+Which search gets credited is a within-run tie-break: `GROUP BY` needs an
+aggregate on that column anyway, and `min(s.id)` makes it the oldest matching
+search rather than whichever row the database reached first. It never changes
+afterwards, but that's the `NOT EXISTS` — once the alert exists the pair is
+never reconsidered, so a later run can't re-credit it either.
 
 **Backfill: no.** A saved search alerts on listings that go live from then on.
 Backfilling would dump thirty alerts on someone the moment they save a broad

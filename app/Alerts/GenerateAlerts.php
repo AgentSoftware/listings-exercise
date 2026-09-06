@@ -93,8 +93,13 @@ class GenerateAlerts
                 ->whereColumn('a.listing_id', 'l.id'))
             // One alert per user per listing, however many of their searches
             // matched — the anti-spam rule, applied in the database rather than
-            // by pulling every matching search into PHP to deduplicate. min(s.id)
-            // credits the oldest matching search, so attribution is stable.
+            // by pulling every matching search into PHP to deduplicate.
+            //
+            // GROUP BY needs an aggregate for the search id regardless; min()
+            // makes it the oldest matching search rather than whichever row the
+            // database reached first. That is a tie-break within this run only.
+            // A later run never revisits the pair, because the NOT EXISTS above
+            // sees the alert — so the credit can't change once it is written.
             ->groupBy('s.user_id', 'l.id')
             ->selectRaw('s.user_id, l.id, min(s.id), ?, ?', [$now, $now]);
     }

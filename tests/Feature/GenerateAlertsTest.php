@@ -105,8 +105,33 @@ class GenerateAlertsTest extends TestCase
         $this->assertSame(1, $this->generate());
         $this->assertDatabaseCount('alerts', 1);
 
-        // Attribution is stable rather than arbitrary: the older search wins.
+        // Which one is credited is min(s.id)'s tie-break, so it is the older
+        // search rather than whichever row the database reached first.
         $this->assertDatabaseHas('alerts', ['saved_search_id' => $first->id]);
+    }
+
+    /**
+     * The credit is frozen by the alert existing, not by the tie-break that
+     * chose it: once a pair has an alert the run never reconsiders it. So
+     * deleting the credited search leaves the alert orphaned rather than
+     * handing it to another search that still matches.
+     */
+    public function test_a_deleted_search_is_not_replaced_by_another_that_matches(): void
+    {
+        $user = User::factory()->create();
+        $first = $this->savedSearch($user, ['region' => 'Leeds']);
+        $this->savedSearch($user, ['max_price' => 300_000]);
+        $this->liveListing();
+
+        $this->assertSame(1, $this->generate());
+
+        $first->delete();
+
+        $this->assertSame(0, $this->generate());
+        $this->assertDatabaseHas('alerts', [
+            'user_id' => $user->id,
+            'saved_search_id' => null,
+        ]);
     }
 
     public function test_running_again_creates_nothing_further(): void
