@@ -18,6 +18,11 @@ use Illuminate\Notifications\Notifiable;
  * @property string $email
  * @property-read Collection<int, SavedSearch> $savedSearches
  * @property-read Collection<int, Alert> $alerts
+ *
+ * Set by withCount('alerts'), and null on a User loaded without it. The alert
+ * digest needs the true number of pending alerts while loading only the few it
+ * prints, so it counts in the same query — see DispatchAlerts.
+ * @property-read int|null $alerts_count
  */
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
