@@ -11,8 +11,9 @@ use Illuminate\Validation\Rules\Enum;
  * A set of listing search criteria — the shape a user fills in on the filter
  * form and the shape a saved search persists.
  *
- * Three places have to agree on what "matches" means: the browse filters, the
- * saved-search form, and the nightly alert run. This class is that agreement.
+ * Three places have to agree on what "matches" means: the browse filters query
+ * with applyTo(), the saved-search form validates with rules(), and the nightly
+ * alert run joins on the same comparisons. This class is that agreement.
  * A null property means "any", consistently, everywhere.
  */
 readonly class ListingCriteria
@@ -85,19 +86,6 @@ readonly class ListingCriteria
         if ($this->region !== null) {
             $query->whereHas('branch', fn (Builder $branch) => $branch->where('region', $this->region));
         }
-    }
-
-    /**
-     * The same rule as applyTo(), decided in PHP for a listing already in hand.
-     *
-     * Reads the branch relation, so eager-load it when checking many listings.
-     */
-    public function matches(Listing $listing): bool
-    {
-        return ($this->propertyType === null || $listing->property_type === $this->propertyType)
-            && ($this->maxPrice === null || $listing->price <= $this->maxPrice)
-            && ($this->minBedrooms === null || $listing->bedrooms >= $this->minBedrooms)
-            && ($this->region === null || $listing->branch->region === $this->region);
     }
 
     /**

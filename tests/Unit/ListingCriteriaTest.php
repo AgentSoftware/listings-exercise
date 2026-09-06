@@ -9,6 +9,7 @@ use App\Search\ListingCriteria;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\CriteriaOracle;
 use Tests\TestCase;
 
 class ListingCriteriaTest extends TestCase
@@ -61,14 +62,13 @@ class ListingCriteriaTest extends TestCase
     }
 
     /**
-     * applyTo() and matches() are two expressions of one rule, used in different
-     * places: the browse page filters in SQL, the nightly alert run checks a
-     * listing it already holds. If they ever disagree, a user is alerted about
-     * a property the site itself would not have shown them — so assert directly
-     * that they select the same listings.
+     * applyTo() builds SQL, which is fast and not obviously correct by reading.
+     * CriteriaOracle states the same rule in plain PHP, which is the reverse —
+     * so assert the two select exactly the same listings rather than checking
+     * the query against expectations written out by hand.
      */
     #[DataProvider('criteriaCases')]
-    public function test_the_query_and_the_predicate_select_the_same_listings(ListingCriteria $criteria): void
+    public function test_the_query_selects_the_same_listings_as_the_rule_it_encodes(ListingCriteria $criteria): void
     {
         $listings = $this->listingGrid();
 
@@ -76,15 +76,15 @@ class ListingCriteriaTest extends TestCase
         $criteria->applyTo($query);
 
         $selectedByQuery = $query->orderBy('id')->pluck('id')->all();
-        $selectedByPredicate = $listings
-            ->filter(fn (Listing $listing) => $criteria->matches($listing))
+        $selectedByRule = $listings
+            ->filter(fn (Listing $listing) => CriteriaOracle::matches($criteria, $listing))
             ->sortBy('id')
             ->pluck('id')
             ->all();
 
         // Guards against the degenerate pass where both sides match nothing.
         $this->assertNotEmpty($selectedByQuery, 'Fixture should match at least one listing.');
-        $this->assertSame($selectedByQuery, $selectedByPredicate);
+        $this->assertSame($selectedByQuery, $selectedByRule);
     }
 
     /**

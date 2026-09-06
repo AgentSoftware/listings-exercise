@@ -53,13 +53,17 @@ now" is one click away in a UI that already exists. That made the policy one
 clause of one query rather than a special case.
 
 **Criteria live in one value object.** Three places must agree on what "matches"
-means: the browse filters, the saved-search form, and the alert run.
-`App\Search\ListingCriteria` holds the rule once, as a query (`applyTo`), a
-predicate (`matches`) and validation rules. The alert run's join is that rule
-turned inside out — given a listing, which searches want it. Two SQL expressions
-of one rule is the real risk this feature carries, so the tests assert directly
-that they select the same listings across a grid of every combination of set and
-"any", rather than trusting the inversion by eye.
+means: the browse page queries with `applyTo()`, the saved-search form validates
+with `rules()`, and the nightly run joins on the same comparisons.
+`App\Search\ListingCriteria` is that agreement.
+
+Two of those are SQL, and the run's is `applyTo()` turned inside out — given a
+listing, which searches want it. Inverting a query by hand is the kind of thing
+that looks right and isn't, so both are tested against `Tests\Support\CriteriaOracle`:
+the same rule stated naively in PHP, slow and obvious where the real ones are
+fast and clever. That is a test fixture rather than production code, so it lives
+in `tests/` — nothing in the application calls it. It earns its place: mutating
+a single `<=` to `<` in either SQL path fails the grid.
 
 **Criteria are columns, not JSON** — the run matches in SQL, which needs real
 columns, and it keeps the values typed. Cost: a migration per new criterion.

@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\CriteriaOracle;
 use Tests\TestCase;
 
 class GenerateAlertsTest extends TestCase
@@ -166,10 +167,10 @@ class GenerateAlertsTest extends TestCase
 
     /**
      * The join in GenerateAlerts is ListingCriteria::applyTo() turned inside out
-     * and applied to every new listing at once. It is the third expression of
-     * one rule, and the only one a user's alerts actually depend on — so assert
-     * it against the criteria object directly, across every combination of set
-     * and "any", rather than trusting the inversion by eye.
+     * and applied to every new listing at once. Inverting a query by hand is
+     * exactly the kind of thing that looks right and isn't, and this is the one
+     * a user's alerts actually depend on — so assert it against CriteriaOracle,
+     * across every combination of set and "any", rather than by eye.
      *
      * Each search belongs to a different user, so the one-alert-per-user rule
      * cannot mask a disagreement.
@@ -189,7 +190,7 @@ class GenerateAlertsTest extends TestCase
 
         foreach ($listings as $listing) {
             foreach ($searches as $search) {
-                $expected = $search->criteria()->matches($listing);
+                $expected = CriteriaOracle::matches($search->criteria(), $listing);
                 $matches += (int) $expected;
 
                 $this->assertSame(
