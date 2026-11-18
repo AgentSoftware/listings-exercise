@@ -20,7 +20,6 @@ defineProps({
                 v-for="alert in alerts.data"
                 :key="alert.id"
                 class="flex flex-col gap-2 rounded-xl"
-                :class="alert.is_unread && 'ring-2 ring-slate-900 ring-offset-2 ring-offset-slate-50'"
             >
                 <div class="flex items-center justify-between gap-2 text-xs text-slate-500">
                     <span class="min-w-0 truncate">
