@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AlertFrequency;
 use App\Enums\PropertyType;
 use App\Support\ListingCriteria;
+use Carbon\CarbonInterface;
 use Database\Factories\SavedSearchFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -101,5 +102,26 @@ class SavedSearch extends Model
         $orAny('property_type', '=', $listing->property_type);
         $orAny('max_price', '>=', $listing->price);
         $orAny('min_bedrooms', '<=', $listing->bedrooms);
+    }
+
+    /**
+     * Searches whose next email is due: at least the frequency's interval has
+     * passed since the last email (or since the search was saved, if it has
+     * never emailed). Instantly has a zero interval, so it's always due. Never
+     * isn't an alerting frequency, so it's never due.
+     *
+     * @param  Builder<SavedSearch>  $query
+     */
+    public function scopeDue(Builder $query, ?CarbonInterface $now = null): void
+    {
+        $now ??= now();
+
+        $query->where(function (Builder $query) use ($now) {
+            foreach (AlertFrequency::alerting() as $frequency) {
+                $query->orWhere(fn (Builder $query) => $query
+                    ->where('alert_frequency', $frequency)
+                    ->whereRaw('coalesce(last_notified_at, created_at) <= ?', [$now->copy()->sub($frequency->interval())]));
+            }
+        });
     }
 }

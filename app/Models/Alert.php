@@ -6,8 +6,10 @@ use Database\Factories\AlertFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Prunable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Config;
 
 /**
  * @property int $id
@@ -25,7 +27,7 @@ use Illuminate\Support\Carbon;
 class Alert extends Model
 {
     /** @use HasFactory<AlertFactory> */
-    use HasFactory;
+    use HasFactory, Prunable;
 
     protected $fillable = [
         'user_id',
@@ -99,5 +101,47 @@ class Alert extends Model
     public function scopePending(Builder $query): void
     {
         $query->whereNull('notified_at');
+    }
+
+    /**
+     * What SendPendingAlerts emails: pending, visible (the listing is still
+     * live), and the matched search is due. Alerts whose search was deleted
+     * have a null saved_search_id, so they drop out here. They are never
+     * emailed, but stay in the app until pruned.
+     *
+     * @param  Builder<Alert>  $query
+     */
+    public function scopeDeliverable(Builder $query): void
+    {
+        $query->pending()
+            ->visible()
+            ->whereIn('saved_search_id', SavedSearch::query()->due()->select('id'));
+    }
+
+    /**
+     * Alerts are one small row per user per listing, so the table grows
+     * linearly with listings × interested users and has to be bounded. An
+     * alert is only useful while the listing is fresh news: unread alerts are
+     * kept for 90 days, and read ones (already seen) for 30. Both windows are
+     * set in config/alerts.php.
+     *
+     * The no-re-alert guarantee (unique user + listing) only lasts as long as
+     * the alert row does. A listing that comes back on the market after its
+     * alert was pruned alerts again. That's intended: after that long, it is
+     * news again.
+     *
+     * @return Builder<Alert>
+     */
+    public function prunable(): Builder
+    {
+        $unreadCutoff = now()->subDays(Config::integer('alerts.retention_days'));
+        $readCutoff = now()->subDays(Config::integer('alerts.read_retention_days'));
+
+        return self::query()
+            ->where(fn (Builder $query) => $query
+                ->where('created_at', '<', $unreadCutoff)
+                ->orWhere(fn (Builder $query) => $query
+                    ->whereNotNull('read_at')
+                    ->where('created_at', '<', $readCutoff)));
     }
 }

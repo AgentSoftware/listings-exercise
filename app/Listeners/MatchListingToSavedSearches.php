@@ -5,10 +5,13 @@ namespace App\Listeners;
 use App\Enums\AlertFrequency;
 use App\Enums\ListingStatus;
 use App\Events\ListingWentLive;
+use App\Jobs\SendPendingAlerts;
 use App\Models\Alert;
 use App\Models\SavedSearch;
+use App\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Config;
 
 /**
  * Reverse match: find every alert-enabled saved search the new listing
@@ -54,7 +57,7 @@ class MatchListingToSavedSearches implements ShouldQueue
                 ->where('alert_frequency', $frequency)
                 ->matching($listing)
                 ->select(['id', 'user_id'])
-                ->chunkById(500, function (Collection $searches) use ($listing): void {
+                ->chunkById(500, function (Collection $searches) use ($listing, $frequency): void {
                     $now = now();
 
                     Alert::query()->insertOrIgnore($searches->map(fn (SavedSearch $search) => [
@@ -64,7 +67,28 @@ class MatchListingToSavedSearches implements ShouldQueue
                         'created_at' => $now,
                         'updated_at' => $now,
                     ])->all());
+
+                    if ($frequency === AlertFrequency::Instantly) {
+                        $this->queueInstantSends($searches->pluck('user_id')->unique()->all());
+                    }
                 });
         }
+    }
+
+    /**
+     * Delayed and unique per user, so further matches inside the window join
+     * the email that's already queued (see SendPendingAlerts). Dispatching for
+     * a user whose alert already existed is harmless: the job sends nothing
+     * new.
+     *
+     * @param  list<int>  $userIds
+     */
+    private function queueInstantSends(array $userIds): void
+    {
+        $delay = now()->addMinutes(Config::integer('alerts.instant_debounce_minutes'));
+
+        User::query()->whereKey($userIds)->each(
+            fn (User $user) => SendPendingAlerts::dispatch($user)->delay($delay),
+        );
     }
 }
