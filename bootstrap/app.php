@@ -25,6 +25,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
             HandleInertiaRequests::class,
         ]);
+
+        // There's no login page. A guest (only possible before seeding) is sent
+        // to the listings page instead of a missing `login` route.
+        $middleware->redirectGuestsTo('/');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -40,6 +40,11 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user()?->only('id', 'name', 'email'),
             ],
+            // One on-screen message mechanism for every page: actions redirect
+            // back()->with('message', …) and the FlashMessage component shows it.
+            'flash' => [
+                'message' => fn () => $request->session()->get('message'),
+            ],
         ];
     }
 }

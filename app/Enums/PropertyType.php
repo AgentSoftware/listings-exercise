@@ -34,4 +34,18 @@ enum PropertyType: string
             self::Bungalow => 'Bungalow',
         };
     }
+
+    /**
+     * The plural used in search summaries ("Flats in Manchester").
+     */
+    public function pluralLabel(): string
+    {
+        return match ($this) {
+            self::Detached => 'Detached homes',
+            self::SemiDetached => 'Semi-detached homes',
+            self::Terraced => 'Terraced homes',
+            self::Flat => 'Flats',
+            self::Bungalow => 'Bungalows',
+        };
+    }
 }

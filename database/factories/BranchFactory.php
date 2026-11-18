@@ -10,6 +10,15 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class BranchFactory extends Factory
 {
+    /**
+     * The regions branches cover. Public so other factories (e.g. saved
+     * searches) draw from the same list and can actually match these branches.
+     */
+    public const REGIONS = [
+        'Manchester', 'Leeds', 'Liverpool', 'Sheffield',
+        'Newcastle', 'Nottingham', 'Bristol', 'Birmingham',
+    ];
+
     protected $model = Branch::class;
 
     /**
@@ -17,10 +26,7 @@ class BranchFactory extends Factory
      */
     public function definition(): array
     {
-        $city = fake()->randomElement([
-            'Manchester', 'Leeds', 'Liverpool', 'Sheffield',
-            'Newcastle', 'Nottingham', 'Bristol', 'Birmingham',
-        ]);
+        $city = fake()->randomElement(self::REGIONS);
 
         return [
             'name' => $city.' '.fake()->randomElement(['Central', 'North', 'South', 'Quays', 'Village']),

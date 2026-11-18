@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import { fieldClasses, primaryButtonClasses, secondaryButtonClasses } from '../ui';
 
 const props = defineProps({
     modelValue: { type: Object, required: true },
@@ -20,9 +21,6 @@ const hasFilters = computed(() => Object.values(props.modelValue).some(Boolean))
 function update(key, value) {
     emit('update:modelValue', { ...props.modelValue, [key]: value });
 }
-
-const fieldClasses =
-    'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900';
 </script>
 
 <template>
@@ -91,7 +89,7 @@ const fieldClasses =
         <button
             type="submit"
             :disabled="processing"
-            class="rounded-lg bg-slate-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-50"
+            :class="primaryButtonClasses"
         >
             Search
         </button>
@@ -99,7 +97,7 @@ const fieldClasses =
         <button
             v-if="hasFilters"
             type="button"
-            class="rounded-lg px-3 py-2 text-sm text-slate-500 underline-offset-2 hover:underline"
+            :class="secondaryButtonClasses"
             @click="emit('reset')"
         >
             Clear
