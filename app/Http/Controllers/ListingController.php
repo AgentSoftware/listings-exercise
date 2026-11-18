@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AlertFrequency;
 use App\Enums\ListingStatus;
 use App\Enums\PropertyType;
 use App\Http\Requests\ListingIndexRequest;
 use App\Http\Resources\BranchResource;
+use App\Http\Resources\ListingCriteriaResource;
 use App\Http\Resources\ListingResource;
 use App\Models\Branch;
 use App\Models\Listing;
@@ -21,7 +23,8 @@ class ListingController extends Controller
     public function index(ListingIndexRequest $request): Response
     {
         // The filter rules live in ListingCriteria, shared with saved searches.
-        $query = $request->criteria()->applyTo(Listing::query()->live());
+        $criteria = $request->criteria();
+        $query = $criteria->applyTo(Listing::query()->live());
 
         // `id` is a tiebreaker: without it, listings sharing a `listed_at` can be
         // ordered differently between page requests, which duplicates or skips
@@ -36,6 +39,13 @@ class ListingController extends Controller
             'branches' => BranchResource::collection(Branch::query()->orderBy('name')->get()),
             'propertyTypes' => PropertyType::options(),
             'filters' => $request->only(ListingCriteria::KEYS),
+            // The submitted search (this URL), not the filter form: it drives
+            // the "Save search" / "✓ Saved" button and the save modal.
+            'criteria' => new ListingCriteriaResource($criteria),
+            'savedSearchId' => $criteria->isEmpty()
+                ? null
+                : $request->user()?->savedSearches()->withCriteria($criteria)->value('id'),
+            'alertFrequencies' => AlertFrequency::options(),
         ]);
     }
 

@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
+import FlashMessage from './FlashMessage.vue';
 
 defineProps({
     heading: { type: String, required: true },
@@ -42,5 +43,7 @@ const navLinkClasses = 'text-sm font-medium text-slate-500 transition hover:text
         <main>
             <slot />
         </main>
+
+        <FlashMessage />
     </div>
 </template>

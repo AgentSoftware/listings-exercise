@@ -1,7 +1,7 @@
 <script setup>
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '../../components/AppLayout.vue';
-import { secondaryButtonClasses } from '../../ui';
+import { outlineButtonClasses, secondaryButtonClasses } from '../../ui';
 
 defineProps({
     savedSearches: { type: Array, required: true },
@@ -10,7 +10,7 @@ defineProps({
 // The same destroy route and policy as the listings page's "✓ Saved" button.
 // The server redirects back with a flash message.
 function destroy(savedSearch) {
-    router.delete(`/saved-searches/${savedSearch.id}`, { preserveScroll: true });
+    router.delete(`/saved-searches/${savedSearch.id}`, { preserveScroll: true, preserveState: true });
 }
 </script>
 
@@ -46,10 +46,7 @@ function destroy(savedSearch) {
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <Link
-                        :href="savedSearch.results_url"
-                        class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm hover:bg-slate-100"
-                    >
+                    <Link :href="savedSearch.results_url" :class="outlineButtonClasses">
                         View results
                     </Link>
                     <button type="button" :class="secondaryButtonClasses" @click="destroy(savedSearch)">

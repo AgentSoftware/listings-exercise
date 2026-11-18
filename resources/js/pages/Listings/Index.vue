@@ -5,12 +5,18 @@ import AppLayout from '../../components/AppLayout.vue';
 import ListingCard from '../../components/ListingCard.vue';
 import ListingFilters from '../../components/ListingFilters.vue';
 import Pagination from '../../components/Pagination.vue';
+import SaveSearchButton from '../../components/SaveSearchButton.vue';
 
 const props = defineProps({
     listings: { type: Object, required: true },
     branches: { type: Array, required: true },
     propertyTypes: { type: Array, required: true },
     filters: { type: Object, required: true },
+    // The submitted search (the URL), unlike the form below, which may hold
+    // edits that haven't been searched yet.
+    criteria: { type: Object, required: true },
+    savedSearchId: { type: Number, default: null },
+    alertFrequencies: { type: Array, required: true },
 });
 
 const processing = ref(false);
@@ -60,10 +66,18 @@ function reset() {
             @reset="reset"
         />
 
-        <p class="mb-4 text-sm text-slate-500" aria-live="polite">
-            <span v-if="processing">Loading…</span>
-            <span v-else>{{ listings.meta.total }} listing(s) found</span>
-        </p>
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p class="text-sm text-slate-500" aria-live="polite">
+                <span v-if="processing">Loading…</span>
+                <span v-else>{{ listings.meta.total }} listing(s) found</span>
+            </p>
+
+            <SaveSearchButton
+                :criteria="criteria"
+                :saved-search-id="savedSearchId"
+                :alert-frequencies="alertFrequencies"
+            />
+        </div>
 
         <div
             v-if="listings.data.length"
