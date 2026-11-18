@@ -32,6 +32,18 @@ class ActAsDemoUserTest extends TestCase
         $this->get('/_test/whoami')->assertExactJson(['request' => $demo->id, 'auth' => $demo->id]);
     }
 
+    /**
+     * Regression: Laravel's middleware priority list ran `auth` before this
+     * stub, so user-only pages redirected the demo user away as a guest.
+     */
+    public function test_the_demo_user_can_open_user_only_pages(): void
+    {
+        User::factory()->create();
+
+        $this->get('/saved-searches')->assertOk();
+        $this->get('/alerts')->assertOk();
+    }
+
     public function test_an_authenticated_user_takes_precedence_over_the_demo_user(): void
     {
         User::factory()->create(); // would be the demo user

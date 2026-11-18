@@ -39,6 +39,9 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user()?->only('id', 'name', 'email'),
+                // Lazy, so it's counted after the controller has run: on the
+                // alerts page, the alerts just shown already count as read.
+                'unread_alerts' => fn () => $request->user()?->alerts()->visible()->unread()->count() ?? 0,
             ],
             // One on-screen message mechanism for every page: actions redirect
             // back()->with('message', …) and the FlashMessage component shows it.

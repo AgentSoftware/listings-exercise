@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AlertController;
 use App\Http\Controllers\ListingController;
 use App\Http\Controllers\SavedSearchController;
 use Illuminate\Support\Facades\Route;
@@ -16,4 +17,6 @@ Route::middleware('auth')->group(function () {
         // Already gone (e.g. deleted, then Back showed a stale page): send the
         // user back so the props refresh, rather than showing a 404.
         ->missing(fn () => back());
+
+    Route::get('/alerts', [AlertController::class, 'index'])->name('alerts.index');
 });

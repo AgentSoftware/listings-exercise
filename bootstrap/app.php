@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\ActAsDemoUser;
 use App\Http\Middleware\HandleInertiaRequests;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -25,6 +26,15 @@ return Application::configure(basePath: dirname(__DIR__))
 
             HandleInertiaRequests::class,
         ]);
+
+        // Laravel sorts middleware by a priority list, which moves route
+        // middleware such as `auth` ahead of the web group's appended entries.
+        // Put the stub just before authentication, so `auth` and `can` see
+        // the demo user instead of a guest.
+        $middleware->prependToPriorityList(
+            before: AuthenticatesRequests::class,
+            prepend: ActAsDemoUser::class,
+        );
 
         // There's no login page. A guest (only possible before seeding) is sent
         // to the listings page instead of a missing `login` route.

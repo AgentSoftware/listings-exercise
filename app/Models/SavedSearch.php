@@ -83,4 +83,23 @@ class SavedSearch extends Model
                 : $query->where($column, $value);
         }
     }
+
+    /**
+     * Reverse match: the searches this listing satisfies, where a null
+     * criterion means "any". It must agree with ListingCriteria::applyTo(),
+     * which a parity test checks.
+     *
+     * @param  Builder<SavedSearch>  $query
+     */
+    public function scopeMatching(Builder $query, Listing $listing): void
+    {
+        $orAny = fn (string $column, string $operator, mixed $value) => $query->where(
+            fn (Builder $q) => $q->whereNull($column)->orWhere($column, $operator, $value),
+        );
+
+        $orAny('region', '=', $listing->branch->region);
+        $orAny('property_type', '=', $listing->property_type);
+        $orAny('max_price', '>=', $listing->price);
+        $orAny('min_bedrooms', '<=', $listing->bedrooms);
+    }
 }

@@ -11,6 +11,7 @@ const page = usePage();
 
 // Null until the database is seeded (see ActAsDemoUser).
 const user = computed(() => page.props.auth.user);
+const unreadAlerts = computed(() => page.props.auth.unread_alerts);
 
 const navLinkClasses = 'text-sm font-medium text-slate-500 transition hover:text-slate-900';
 </script>
@@ -23,6 +24,15 @@ const navLinkClasses = 'text-sm font-medium text-slate-500 transition hover:text
 
                 <nav v-if="user" class="flex items-center gap-4" aria-label="Account">
                     <Link href="/saved-searches" :class="navLinkClasses">Saved searches</Link>
+                    <Link href="/alerts" :class="[navLinkClasses, 'inline-flex items-center gap-1.5']">
+                        Alerts
+                        <span
+                            v-if="unreadAlerts"
+                            class="rounded-full bg-slate-900 px-2 py-0.5 text-xs font-medium text-white"
+                        >
+                            {{ unreadAlerts }}<span class="sr-only"> unread</span>
+                        </span>
+                    </Link>
                 </nav>
             </div>
             <h1 class="mt-2 text-3xl font-bold tracking-tight">{{ heading }}</h1>

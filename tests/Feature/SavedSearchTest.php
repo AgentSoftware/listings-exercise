@@ -155,7 +155,8 @@ class SavedSearchTest extends TestCase
                 ->where('savedSearches.1.name', 'Manchester flats')
                 ->where('savedSearches.1.summary', 'Flats in Manchester · 2+ beds · up to £200,000')
                 ->where('savedSearches.1.alerts_enabled', true)
-                ->where('savedSearches.1.alert_frequency_label', 'Daily')
+                ->where('savedSearches.1.alert_frequency.value', 'daily')
+                ->where('savedSearches.1.alert_frequency.label', 'Daily')
                 ->where('savedSearches.1.results_url', '/?property_type=flat&max_price=200000&min_bedrooms=2&region=Manchester')
             );
     }

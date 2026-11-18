@@ -4,11 +4,14 @@ namespace App\Models;
 
 use App\Enums\ListingStatus;
 use App\Enums\PropertyType;
+use App\Observers\ListingObserver;
 use Database\Factories\ListingFactory;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -31,6 +34,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $updated_at
  * @property-read Branch $branch
  */
+#[ObservedBy(ListingObserver::class)]
 class Listing extends Model
 {
     /** @use HasFactory<ListingFactory> */
@@ -71,6 +75,14 @@ class Listing extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    /**
+     * @return HasMany<Alert, $this>
+     */
+    public function alerts(): HasMany
+    {
+        return $this->hasMany(Alert::class);
     }
 
     /**

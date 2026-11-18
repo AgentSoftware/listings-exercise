@@ -27,6 +27,14 @@ class User extends Authenticatable
     }
 
     /**
+     * @return HasMany<Alert, $this>
+     */
+    public function alerts(): HasMany
+    {
+        return $this->hasMany(Alert::class);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

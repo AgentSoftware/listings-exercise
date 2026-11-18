@@ -23,8 +23,10 @@ class SavedSearchResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'summary' => $criteria->describe(),
-            'alert_frequency' => $this->alert_frequency->value,
-            'alert_frequency_label' => $this->alert_frequency->label(),
+            'alert_frequency' => [
+                'value' => $this->alert_frequency->value,
+                'label' => $this->alert_frequency->label(),
+            ],
             // Never is a bookmark: it's re-run by hand and never alerts.
             'alerts_enabled' => $this->alert_frequency !== AlertFrequency::Never,
             'results_url' => route('listings.index', $criteria->toQuery(), false),

@@ -32,7 +32,7 @@ function destroy(savedSearch) {
                             v-if="savedSearch.alerts_enabled"
                             class="rounded-full bg-slate-900 px-2.5 py-0.5 text-xs font-medium text-white"
                         >
-                            Alerts: {{ savedSearch.alert_frequency_label }}
+                            Alerts: {{ savedSearch.alert_frequency.label }}
                         </span>
                         <span
                             v-else
